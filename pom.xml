@@ -26,8 +26,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <!-- Tycho-линия под EDT 2025.2 (Eclipse 4.30, Java 17). Корректируется первым CI-запуском. -->
-    <tycho.version>4.2.3</tycho.version>
+    <!-- Tycho-линия под EDT 2025.2 (Eclipse 4.30, Java 17). 4.0.5 подтверждена существующей. -->
+    <tycho.version>4.0.5</tycho.version>
     <p2.edt.repo>https://edt.1c.ru/downloads/releases/ruby/2025.2/</p2.edt.repo>
     <p2.eclipse.repo>https://download.eclipse.org/releases/2023-12/</p2.eclipse.repo>
   </properties>
