@@ -20,11 +20,11 @@ jobs:
 
       # Плагин компилится к Java 17 (BREE JavaSE-17) под EDT 2025.2 / Eclipse 4.30;
       # Tycho 4.x работает на JDK 17.
-      - name: Set up JDK 17
+      - name: Set up JDK 25
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 25
           cache: maven
 
       - name: Cache Tycho P2 repositories

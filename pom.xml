@@ -25,8 +25,9 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <!-- Tycho-линия под EDT 2025.2 (Eclipse 4.30, Java 17). 4.0.5 подтверждена существующей. -->
-    <tycho.version>4.0.5</tycho.version>
+    <!-- Tycho-линия под EDT 2026.2 (Eclipse 4.38, Java 25) — связка, проверенная эталоном edt-mcp-vanessa.
+         Плагин компилится к release 17 (BREE JavaSE-17), поэтому один jar грузится и в 2025.2, и в 2026.x. -->
+    <tycho.version>5.0.4</tycho.version>
     <p2.edt.repo>https://edt.1c.ru/downloads/releases/ruby/2025.2/</p2.edt.repo>
     <p2.eclipse.repo>https://download.eclipse.org/releases/2023-12/</p2.eclipse.repo>
   </properties>
