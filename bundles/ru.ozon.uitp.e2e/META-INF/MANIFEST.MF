@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: UITP E2E - EDT plugin (ui-test-platform)
 Bundle-SymbolicName: ru.ozon.uitp.e2e;singleton:=true
-Bundle-Version: 0.1.0
+Bundle-Version: 0.1.0.qualifier
 Bundle-Vendor: Ozon
 Bundle-Activator: ru.ozon.uitp.e2e.Activator
 Bundle-ActivationPolicy: lazy
