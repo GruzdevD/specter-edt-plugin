@@ -95,13 +95,23 @@ public class RunScenarioHandler extends AbstractHandler {
 
 	/**
 	 * Контракт BSL-агента (Catalogs/Контрагенты/Forms/ФормаСписка/Module.bsl):
-	 * {@code {runId, commands:[{id,action,target,property?,expected?}]}}.
-	 * Набор команд — реальный UI: убедиться, что форма открыта и таблица видима.
+	 * {@code {runId, commands:[{id,action,target,value?,property?,expected?,subject?}]}}.
+	 * Набор команд — полный UI-цикл карточки Контрагента на реальном UI (R1):
+	 * открыть список -> видимость -> открыть карточку -> заполнить ИНН -> проверить
+	 * поле -> команда «Записать» -> форма не модифицирована -> «Закрыть».
+	 * Сравнение сущностей мостом — строковое (Строка(факт) = Строка(expected)),
+	 * поэтому expected типа boolean в JSON пишется как строки "Истина"/"Ложь".
 	 */
 	private String commandsJson(String runId) {
 		return "{\"runId\":\"" + runId + "\",\"commands\":["
 				+ "{\"id\":\"c1\",\"action\":\"openList\",\"target\":\"Список\"},"
-				+ "{\"id\":\"c2\",\"action\":\"assert\",\"target\":\"Список\",\"property\":\"Видимость\",\"expected\":true}"
+				+ "{\"id\":\"c2\",\"action\":\"assert\",\"target\":\"Список\",\"property\":\"Видимость\",\"expected\":\"Истина\"},"
+				+ "{\"id\":\"c3\",\"action\":\"openCard\",\"target\":\"\"},"
+				+ "{\"id\":\"c4\",\"action\":\"setValue\",\"target\":\"ИНН\",\"value\":\"7701234567\"},"
+				+ "{\"id\":\"c5\",\"action\":\"assertValue\",\"target\":\"ИНН\",\"expected\":\"7701234567\"},"
+				+ "{\"id\":\"c6\",\"action\":\"click\",\"target\":\"Записать\"},"
+				+ "{\"id\":\"c7\",\"action\":\"assert\",\"subject\":\"card\",\"target\":\"Форма\",\"property\":\"Модифицированность\",\"expected\":\"Ложь\"},"
+				+ "{\"id\":\"c8\",\"action\":\"click\",\"target\":\"Закрыть\"}"
 				+ "]}";
 	}
 }
