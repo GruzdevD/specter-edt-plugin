@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>ru.ozon.uitp</groupId>
+  <artifactId>uitp-edt-plugin.parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>UITP E2E EDT Plugin</name>
+  <description>
+    Малый EDT-плагин: кнопка «Запустить сценарий» запускает тонкий клиент АУФ с
+    автозапуском BSL-моста на реальном UI 1С и ждёт результат (bridge-result).
+  </description>
+
+  <modules>
+    <module>targets/default</module>
+    <module>bundles/ru.ozon.uitp.e2e</module>
+    <module>features/ru.ozon.uitp.e2e.feature</module>
+    <module>repositories/ru.ozon.uitp.e2e.repository</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <!-- Tycho-линия под EDT 2025.2 (Eclipse 4.30, Java 17). Корректируется первым CI-запуском. -->
+    <tycho.version>4.2.3</tycho.version>
+    <p2.edt.repo>https://edt.1c.ru/downloads/releases/ruby/2025.2/</p2.edt.repo>
+    <p2.eclipse.repo>https://download.eclipse.org/releases/2023-12/</p2.eclipse.repo>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>edt-2025.2</id>
+      <layout>p2</layout>
+      <url>${p2.edt.repo}</url>
+    </repository>
+    <repository>
+      <id>eclipse-2023-12</id>
+      <layout>p2</layout>
+      <url>${p2.eclipse.repo}</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-maven-plugin</artifactId>
+        <version>${tycho.version}</version>
+        <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>target-platform-configuration</artifactId>
+        <version>${tycho.version}</version>
+        <configuration>
+          <target>
+            <artifact>
+              <groupId>ru.ozon.uitp</groupId>
+              <artifactId>uitp-edt-plugin.target</artifactId>
+              <version>${project.version}</version>
+            </artifact>
+          </target>
+          <environments>
+            <environment>
+              <os>macosx</os>
+              <ws>cocoa</ws>
+              <arch>x86_64</arch>
+            </environment>
+            <environment>
+              <os>win32</os>
+              <ws>win32</ws>
+              <arch>x86_64</arch>
+            </environment>
+            <environment>
+              <os>linux</os>
+              <ws>gtk</ws>
+              <arch>x86_64</arch>
+            </environment>
+          </environments>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>17</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

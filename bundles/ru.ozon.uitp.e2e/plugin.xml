@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension point="org.eclipse.ui.commands">
+      <category
+            id="ru.ozon.uitp.e2e.category"
+            name="UITP E2E">
+      </category>
+      <command
+            id="ru.ozon.uitp.e2e.command.runScenario"
+            categoryId="ru.ozon.uitp.e2e.category"
+            name="Запустить сценарий (живой мост)">
+      </command>
+   </extension>
+   <extension point="org.eclipse.ui.handlers">
+      <handler
+            commandId="ru.ozon.uitp.e2e.command.runScenario"
+            class="ru.ozon.uitp.e2e.handler.RunScenarioHandler">
+      </handler>
+   </extension>
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu
+               id="ru.ozon.uitp.e2e.menu"
+               label="UITP E2E"
+               mnemonic="U">
+            <command
+                  commandId="ru.ozon.uitp.e2e.command.runScenario"
+                  label="Запустить сценарий (живой мост)">
+            </command>
+         </menu>
+      </menuContribution>
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar id="ru.ozon.uitp.e2e.toolbar">
+            <command
+                  commandId="ru.ozon.uitp.e2e.command.runScenario"
+                  label="Запустить сценарий">
+            </command>
+         </toolbar>
+      </menuContribution>
+   </extension>
+</plugin>

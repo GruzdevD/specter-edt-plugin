@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: UITP E2E - EDT plugin (ui-test-platform)
+Bundle-SymbolicName: ru.ozon.uitp.e2e;singleton:=true
+Bundle-Version: 0.1.0
+Bundle-Vendor: Ozon
+Bundle-Activator: ru.ozon.uitp.e2e.Activator
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.debug.core,
+ org.eclipse.debug.ui,
+ org.eclipse.ui,
+ com._1c.g5.v8.dt.launching.core
+Export-Package: ru.ozon.uitp.e2e.launcher

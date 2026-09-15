@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="ru.ozon.uitp.e2e.feature"
+      label="UITP E2E (EDT)"
+      version="0.1.0.qualifier"
+      provider-name="Ozon UITP">
+
+   <description>
+      EDT-плагин запуска UI-моста: кнопка «Запустить сценарий» запускает тонкий
+      клиент АУФ с автозапуском BSL-моста на реальном UI 1С.
+   </description>
+
+   <copyright>
+      (c) Ozon UITP. Licensed under EPL-2.0.
+   </copyright>
+
+   <url>
+      <update label="UITP E2E Update Site" url="https://gruzdevd.github.io/uitp-edt-plugin/"/>
+   </url>
+
+   <requires>
+      <import feature="org.eclipse.rcp" version="4.30.0" match="compatible"/>
+   </requires>
+
+   <plugin
+         id="ru.ozon.uitp.e2e"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+</feature>

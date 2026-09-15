@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Cache Tycho P2 repositories
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.m2/repository/.cache/tycho
+            ~/.m2/repository/p2
+          key: ${{ runner.os }}-tycho-p2-${{ hashFiles('**/*.target') }}
+          restore-keys: |
+            ${{ runner.os }}-tycho-p2-
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # tag: v0.1.0 -> 0.1.0
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set version from tag
+        run: |
+          set -euo pipefail
+          TYCHO=$(sed -n 's|.*<tycho.version>\(.*\)</tycho.version>.*|\1|p' pom.xml)
+          test -n "$TYCHO"
+          echo "tycho-versions-plugin: $TYCHO"
+          mvn "org.eclipse.tycho:tycho-versions-plugin:$TYCHO:set-version" \
+            -DnewVersion=${{ steps.version.outputs.version }} \
+            --batch-mode --no-transfer-progress
+
+      - name: Maven build (Tycho)
+        env:
+          MAVEN_OPTS: -Xmx2g -XX:+UseParallelGC
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/mvn-retry.sh" clean verify --batch-mode --no-transfer-progress -T 1C
+
+      - name: Package update-site archive
+        run: |
+          cd repositories/ru.ozon.uitp.e2e.repository/target/repository
+          zip -r "$GITHUB_WORKSPACE/UITP-EDT.v${{ steps.version.outputs.version }}.zip" .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: UITP-EDT v${{ steps.version.outputs.version }}
+          body: |
+            Малый EDT-плагин запуска UI-моста (кнопка «Запустить сценарий»).
+
+            Установка через UI EDT: **Help → Install New Software → Work with:**
+            `https://gruzdevd.github.io/uitp-edt-plugin/` → категория «UITP E2E (EDT)».
+          files: |
+            UITP-EDT.v*.zip

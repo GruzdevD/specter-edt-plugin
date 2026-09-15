@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+   Target platform для сборки плагина ru.ozon.uitp.e2e.
+   Базис: EDT 2025.2 (ruby/2025.2), платформа 8.3.27, Eclipse 4.30, BREE JavaSE-17.
+   Публичные p2-репозитории доступны на GitHub Actions (локально p2-сети может не быть).
+-->
+<?pde version="3.8"?><target name="UITP E2E EDT Plugin Platform" sequenceNumber="1">
+<locations>
+
+<!-- EDT platform support (8.3.27 — целевая платформа) -->
+<location followRepositoryReferences="false" includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<repository id="dt_repository" location="https://edt.1c.ru/downloads/releases/ruby/2025.2/"/>
+<unit id="com._1c.g5.v8.dt.platform.support_v8.3.27.feature.feature.group" version="0.0.0"/>
+</location>
+
+<!-- EDT -->
+<location followRepositoryReferences="false" includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<repository id="dt_repository" location="https://edt.1c.ru/downloads/releases/ruby/2025.2/"/>
+<unit id="com._1c.g5.v8.dt.rcp" version="0.0.0"/>
+<unit id="com._1c.g5.v8.dt.feature.feature.group" version="0.0.0"/>
+<unit id="com._1c.g5.v8.dt.thirdparty.feature.group" version="0.0.0"/>
+</location>
+
+<!-- Eclipse base (4.30) -->
+<location followRepositoryReferences="false" includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.sdk.feature.group" version="0.0.0"/>
+<unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
+<unit id="org.eclipse.pde.feature.group" version="0.0.0"/>
+<unit id="org.eclipse.orbit.xml-apis-ext" version="0.0.0"/>
+<repository id="eclipse_repository" location="https://download.eclipse.org/releases/2023-12/"/>
+</location>
+
+<location followRepositoryReferences="false" includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.license.feature.group" version="0.0.0"/>
+<repository location="http://download.eclipse.org/cbi/updates/license/2.0.2.v20181016-2210"/>
+</location>
+
+</locations>
+</target>
