@@ -33,10 +33,9 @@
 <unit id="org.eclipse.debug.core" version="0.0.0"/>
 <unit id="org.eclipse.debug.ui" version="0.0.0"/>
 <unit id="org.eclipse.ui" version="0.0.0"/>
-<!-- e4 требует Declarative Services: osgi.extender=osgi.component + org.osgi.services (в 2023-12 они ещё в org.eclipse.osgi.services) -->
-<unit id="org.eclipse.equinox.ds" version="0.0.0"/>
+<!-- e4 требует Declarative Services (osgi.extender=osgi.component). В этой линии Eclipse DS = org.apache.felix.scr (проверено по локальному pool EDT 2025.2). -->
+<unit id="org.apache.felix.scr" version="0.0.0"/>
 <unit id="org.eclipse.osgi.services" version="0.0.0"/>
-<unit id="javax.inject" version="0.0.0"/>
 <repository id="eclipse_repository" location="https://download.eclipse.org/releases/2023-12/"/>
 </location>
 
