@@ -101,7 +101,83 @@ features/ru.ozon.uitp.e2e.feature/ Feature-манифест плагина
 repositories/ru.ozon.uitp.e2e.repository/ p2 update-site + category.xml
 targets/default/default.target     Target Platform (p2 1С ruby/2025.2 + Eclipse 4.30)
 extension/СП_Тестирование/         BSL-расширение 1С (движок шагов, мост и ассерты)
+tools/ci/                          Скрипт CLI-раннера (specter-cli.py) и шаблоны CI/CD (GitLab)
 ```
+
+---
+
+## 🤖 Интеграция с CI/CD (Headless-запуск)
+
+Фреймворк **Specter** поддерживает автоматизированный безинтерфейсный (headless) запуск UI-тестов 1С в CI/CD пайплайнах (GitLab CI, GitHub Actions, Jenkins и др.) через файловый мост обмена `outDir`.
+
+### 1. Перенос CLI-раннера `specter-cli.py` в свой проект
+
+Скопируйте скрипт `tools/ci/specter-cli.py` из этого репозитория в каталог вашей 1С-конфигурации или проекта (например, `tools/ci/specter-cli.py`).
+
+Скрипт написан на **чистом Python 3** (использует только стандартную библиотеку) и выполняет:
+- Генерирует уникальный `runId` (UUID).
+- Создает файл `bridge-commands.json` (атомарно).
+- Запускает процесс тонкого клиента 1С (`1cv8c`) с параметром `/C "SPECTER_START_BRIDGE|outDir=<путь>"`.
+- В цикле ожидает ответа `bridge-result-<runId>.json`.
+- Формирует итоговый отчет в стандарте **JUnit XML** (`junit-report.xml`).
+
+Пример ручного запуска локально или на раннере:
+```bash
+python3 tools/ci/specter-cli.py \
+  --out-dir "./specter-exchange" \
+  --client-path "C:\Program Files\1cv8\8.3.25.1234\bin\1cv8c.exe" \
+  --ib-conn "File=\"C:\1C\Bases\DemoDB\"" \
+  --user "Administrator" \
+  --timeout 300 \
+  --module "СП_Тесты_Контрагенты" \
+  --report-path "junit-report.xml"
+```
+
+### 2. Настройка GitLab CI пайплайна
+
+В репозитории подготовлен готовый шаблон [tools/ci/gitlab-ci-template.yml](tools/ci/gitlab-ci-template.yml).
+
+Скопируйте его содержимое в файл `.gitlab-ci.yml` вашего проекта 1С:
+
+```yaml
+stages:
+  - test
+
+variables:
+  SPECTER_OUT_DIR: "${CI_PROJECT_DIR}/specter-exchange"
+  SPECTER_CLIENT_PATH: "1cv8c"
+  SPECTER_IB_CONN: "File=\"/var/1c/bases/test_db\""
+  SPECTER_USER: "Administrator"
+  SPECTER_PASSWORD: ""
+  SPECTER_TIMEOUT: "300"
+
+e2e-tests-1c:
+  stage: test
+  tags:
+    - 1c-runner  # Тэг вашего GitLab Runner с утилитами 1С
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  before_script:
+    - mkdir -p "${SPECTER_OUT_DIR}"
+  script:
+    - python3 tools/ci/specter-cli.py --out-dir "${SPECTER_OUT_DIR}" --client-path "${SPECTER_CLIENT_PATH}" --ib-conn "${SPECTER_IB_CONN}" --user "${SPECTER_USER}" --password "${SPECTER_PASSWORD}" --timeout "${SPECTER_TIMEOUT}" ${SPECTER_MODULE:+--module "${SPECTER_MODULE}"} --report-path "junit-report.xml"
+  artifacts:
+    when: always
+    paths:
+      - junit-report.xml
+      - "${SPECTER_OUT_DIR}/"
+    reports:
+      junit: junit-report.xml
+    expire_in: 1 week
+```
+
+### 3. Отображение результатов в Merge Request (GitLab)
+
+Благодаря парсингу результатов в формат **JUnit XML** (`reports: junit: junit-report.xml`):
+- В каждом **Merge Request** появляется встроенный виджет **Unit Tests**.
+- Инженер и ревьюер сразу видят сводку: количество пропущенных/успешных тестов (зеленый статус) и список упавших шагов (красный статус) с точным описанием ассерта или BSL-ошибки.
+- Вкладка **Pipelines -> Tests** содержит детализированный стек вызовов для каждого тестового сценария.
 
 ---
 

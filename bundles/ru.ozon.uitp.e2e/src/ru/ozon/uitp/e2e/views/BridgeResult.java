@@ -47,12 +47,18 @@ public final class BridgeResult {
 		public final String action;
 		public final String status;
 		public final String detail;
+		public final String screenshotBase64;
 
 		Step(String id, String action, String status, String detail) {
+			this(id, action, status, detail, "");
+		}
+
+		Step(String id, String action, String status, String detail, String screenshotBase64) {
 			this.id = id == null ? "" : id;
 			this.action = action == null ? "" : action;
 			this.status = status == null ? "" : status;
 			this.detail = detail == null ? "" : detail;
+			this.screenshotBase64 = screenshotBase64 == null ? "" : screenshotBase64;
 		}
 
 		public boolean isFailed() {
@@ -169,6 +175,7 @@ public final class BridgeResult {
 		String action = "";
 		String status = "";
 		String detail = "";
+		String screenshotBase64 = "";
 		p.next(); // {
 		while (true) {
 			p.ws();
@@ -179,7 +186,7 @@ public final class BridgeResult {
 			String key = p.parseString();
 			p.ws();
 			if (!p.peek(':')) {
-				return new Step(id, action, status, detail);
+				return new Step(id, action, status, detail, screenshotBase64);
 			}
 			p.next();
 			p.ws();
@@ -196,6 +203,9 @@ public final class BridgeResult {
 				case "detail":
 					detail = p.parseString();
 					break;
+				case "screenshotBase64":
+					screenshotBase64 = p.parseString();
+					break;
 				default:
 					p.skipValue();
 					break;
@@ -205,7 +215,7 @@ public final class BridgeResult {
 				p.next();
 			}
 		}
-		return new Step(id, action, status, detail);
+		return new Step(id, action, status, detail, screenshotBase64);
 	}
 
 	/** Минимальный JSON-токенизатор, достаточный для нашего контракта. */
