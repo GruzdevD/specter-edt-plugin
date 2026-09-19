@@ -21,11 +21,11 @@ import com._1c.g5.v8.dt.metadata.mdclass.CommonModule;
  * {@link IEditorInput#getAdapter(CommonModule.class)} (адаптер предоставляет сам
  * EDT-редактор модуля; в нашем коде держим только интерфейс {@link IEditorInput},
  * поэтому internal-класс редактора не нужен). Модуль считается тестовым набором
- * по конвенции имён ({@code OZON_UI_Тесты_*} / {@code УИ_Тесты_*}), а отдельные
+ * по конвенции имён ({@code СП_Тесты_*} / {@code Тесты_*}), а отдельные
  * тесты — это экспортные методы BSL-модуля {@code getModule().getMethods()}.</p>
  *
  * <p>Запуск конкретного набора из панели идёт через мост: имя модуля набора
- * передаётся движку ({@code OZON_UI_Тестирование}), который сопоставляет его с
+ * передаётся движку ({@code СП_Тестирование}), который сопоставляет его с
  * {@code КаталогНаборов} по {@code ИмяМодуля → ИмяНабора} и исполняет
  * {@code Запустить({Набор, ИмяТеста})} (см. {@link BridgeScenario#runSetJson}).</p>
  */
@@ -39,9 +39,27 @@ public final class EditorModuleSupport {
 		if (moduleName == null) {
 			return false;
 		}
-		return moduleName.startsWith("OZON_UI_Тесты")
-				|| moduleName.startsWith("УИ_Тесты")
-				|| moduleName.contains("_Тесты_");
+		// Исключаем служебные модули движка СП_
+		if (moduleName.equals("СП_Тестирование")
+				|| moduleName.equals("СП_ТестовыйКлиент")
+				|| moduleName.equals("СП_ТестовыеДанные")
+				|| moduleName.equals("СП_Утверждения")
+				|| moduleName.equals("СП_Адаптер")
+				|| moduleName.equals("СП_Протокол")
+				|| moduleName.equals("СП_СправочникИмен")
+				|| moduleName.equals("СП_ГенераторДанных")
+				|| moduleName.equals("СП_ДействияКлиент")
+				|| moduleName.equals("СП_ИнспекторКлиент")
+				|| moduleName.equals("СП_ОжиданияКлиент")
+				|| moduleName.equals("СП_ПроксиФормыКлиент")) {
+			return false;
+		}
+		String lower = moduleName.toLowerCase();
+		return lower.startsWith("сп_тест")
+				|| lower.startsWith("тест_")
+				|| lower.startsWith("тесты_")
+				|| lower.contains("_тест")
+				|| lower.contains("test");
 	}
 
 	/** Активный редактор рабочей страницы (или null, если нет/неполадка). */

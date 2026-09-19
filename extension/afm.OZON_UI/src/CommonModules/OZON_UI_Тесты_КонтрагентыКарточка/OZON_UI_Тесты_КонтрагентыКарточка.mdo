@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="b1721ffa-2ac5-492a-8315-2c10640708ce">
-  <name>OZON_UI_Тесты_КонтрагентыКарточка</name>
-  <clientManagedApplication>true</clientManagedApplication>
-  <server>true</server>
-  <externalConnection>true</externalConnection>
-  <clientOrdinaryApplication>true</clientOrdinaryApplication>
-</mdclass:CommonModule>

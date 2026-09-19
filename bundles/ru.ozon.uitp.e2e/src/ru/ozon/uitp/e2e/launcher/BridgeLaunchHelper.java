@@ -25,7 +25,7 @@ public final class BridgeLaunchHelper {
 	public static final String DEFAULT_SOURCE_CONFIGURATION_NAME = "Тонкий клиент АУФ";
 	public static final String LAUNCH_CONFIG_PROPERTY = "uitp.e2e.launchConfig";
 
-	public static final String STARTUP_OPTION = "OZONUI_START_BRIDGE";
+	public static final String STARTUP_OPTION = "SPECTER_START_BRIDGE";
 	public static final String STARTUP_OPTION_DELIM = "|";
 	public static final String OUT_DIR_PARAM = "outDir=";
 

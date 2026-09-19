@@ -60,19 +60,19 @@ jobs:
           cd repositories/ru.ozon.uitp.e2e.repository/target/repository
           zip -r "$GITHUB_WORKSPACE/UITP-EDT.v${{ steps.version.outputs.version }}.zip" .
 
-      - name: Package extension archive (afm.OZON_UI)
-        # Расширение 1С afm.OZON_UI (BSL-мост + UI-наборы) распространяется вместе с
+      - name: Package extension archive (СП_Тестирование)
+        # Расширение 1С СП_Тестирование (BSL-мост + движок действий) распространяется вместе с
         # плагином. Единая версия: <version> в Configuration.mdo расширения = версия
-        # тега v*. Исходник-источник живёт в этом репо (extension/afm.OZON_UI/src).
+        # плагина и тега v*. Исходник-источник живёт в этом репо (extension/СП_Тестирование/src).
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
-          STAGE="$GITHUB_WORKSPACE/.stage/afm.OZON_UI"
+          STAGE="$GITHUB_WORKSPACE/.stage/СП_Тестирование"
           mkdir -p "$STAGE"
-          cp -R "$GITHUB_WORKSPACE/extension/afm.OZON_UI/src" "$STAGE/src"
+          cp -R "$GITHUB_WORKSPACE/extension/СП_Тестирование/src" "$STAGE/src"
           sed -i "s|<version>[^<]*</version>|<version>${VERSION}</version>|" \
             "$STAGE/src/Configuration/Configuration.mdo"
-          (cd "$STAGE" && zip -q -r "$GITHUB_WORKSPACE/UITP-EXTENSION.afm.OZON_UI.v${VERSION}.zip" .)
+          (cd "$STAGE" && zip -q -r "$GITHUB_WORKSPACE/UITP-EXTENSION.СП_Тестирование.v${VERSION}.zip" .)
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -80,14 +80,14 @@ jobs:
           name: UITP-EDT v${{ steps.version.outputs.version }}
           body: |
             **Specter** — EDT-плагин UI-тестирования 1С: панели «Тесты» / «Результаты»,
-            запуск тестового набора прямо из редактора его общего модуля через
-            BSL-мост на реальном UI 1С (без .epf, видео и скриншотов).
+            запуск тестов прямо из редактора кода BSL через маркеры на линейке (Gutter)
+            и BSL-мост на реальном UI 1С (без .epf, видео и скриншотов).
 
             Установка через UI EDT: **Help → Install New Software → Work with:**
             `https://gruzdevd.github.io/specter-edt-plugin/` → «Next» → Next → «Restart Now».
 
-            В дистрибутив входит BSL-расширение **afm.OZON_UI** (`UITP-EXTENSION.afm.OZON_UI.v*.zip`):
-            живой мост команд на реальном UI 1С + тестовые наборы (см. `extension/afm.OZON_UI/`).
+            В дистрибутив входит BSL-расширение **СП_Тестирование** (`UITP-EXTENSION.СП_Тестирование.v*.zip`):
+            живой мост команд на реальном UI 1С + библиотеки действий и ожиданий (см. `extension/СП_Тестирование/`).
           files: |
             UITP-EDT.v*.zip
-            UITP-EXTENSION.afm.OZON_UI.v*.zip
+            UITP-EXTENSION.СП_Тестирование.v*.zip

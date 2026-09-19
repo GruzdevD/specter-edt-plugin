@@ -1,0 +1,6 @@
+{
+  "name": "Specter EDT Plugin Code Review & Validator",
+  "description": "Architectural code review, validation, and 1C:Enterprise managed forms studio for Specter EDT plugin and СП_Тестирование extension",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

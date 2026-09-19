@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="8e4f1329-fd6f-4425-8dc9-aa5d1f09a1be">
-  <name>OZON_UI_СправочникИмен</name>
-  <clientManagedApplication>true</clientManagedApplication>
-  <server>true</server>
-  <externalConnection>true</externalConnection>
-  <clientOrdinaryApplication>true</clientOrdinaryApplication>
-</mdclass:CommonModule>

@@ -18,9 +18,9 @@
 2. Находит launch-конфигурацию EDT типа `com._1c.g5.v8.dt.launching.core.RuntimeClient`
    (в нашей среде — «Тонкий клиент АУФ»).
 3. Копирует её (`UITP - <имя>`) и пишет в копию:
-   - `ATTR_STARTUP_OPTION = "OZONUI_START_BRIDGE|outDir=<каталог обмена>"` → клиент
-     получает `/C OZONUI_START_BRIDGE|outDir=...`; модуль управляемого приложения
-     расширения `afm.OZON_UI` открывает ФормуСписка, чьё `ПриОткрытии` исполняет
+   - `ATTR_STARTUP_OPTION = "SPECTER_START_BRIDGE|outDir=<каталог обмена>"` → клиент
+     получает `/C SPECTER_START_BRIDGE|outDir=...`; модуль управляемого приложения
+     расширения `СП_Тестирование` открывает ФормуСписка, чьё `ПриОткрытии` исполняет
      команды моста на реальном UI;
    - `ATTR_LAUNCH_USER_NAME` / `ATTR_LAUNCH_USER_PASSWORD` → автовход без окна входа.
 4. Запускает копию через `DebugUITools.launch(copy, "run")`.
@@ -89,7 +89,7 @@ mvn -f pom.xml clean verify -T 1C
 
 - **build.yml** — сборка на push/PR (проверка компиляции).
 - **release.yml** — по тегу `v*`: проставляет версию, собирает, кладёт
-  `UITP-EDT.v<ver>.zip` (update-site плагина) **и** `UITP-EXTENSION.afm.OZON_UI.v<ver>.zip`
+  `UITP-EDT.v<ver>.zip` (update-site плагина) **и** `UITP-EXTENSION.СП_Тестирование.v<ver>.zip`
   (дистрибутив BSL-расширения) в GitHub Release.
 - **deploy-update-site.yml** — при публикации Release деплоит update-site на
   GitHub Pages (тот самый URL для Install New Software).
@@ -106,9 +106,9 @@ bundles/ru.ozon.uitp.e2e/          сама OSGi-обёртка плагина (
 features/ru.ozon.uitp.e2e.feature/ feature (p2-контейнер)
 repositories/ru.ozon.uitp.e2e.repository/ eclipse-repository (update-site) + category.xml
 targets/default/default.target     target platform (публичный p2 1С + Eclipse 4.30)
-extension/afm.OZON_UI/             BSL-расширение 1С (живой мост на реальном UI + тестовые
-                                   наборы). Единый источник afm.OZON_UI; версия общая с
-                                   плагином (тег v*). В релизе — UITP-EXTENSION.afm.OZON_UI.v*.zip
+extension/СП_Тестирование/         BSL-расширение 1С (живой мост на реальном UI + движок
+                                   действий и ожиданий). Единый источник СП_Тестирование;
+                                   версия общая с плагином (0.2.0, тег v*). В релизе — UITP-EXTENSION.СП_Тестирование.v*.zip
 ```
 
 ## Лицензия

@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Specter - EDT plugin (UI-тестирование 1С)
 Bundle-SymbolicName: ru.ozon.uitp.e2e;singleton:=true
-Bundle-Version: 0.1.0.qualifier
+Bundle-Version: 0.2.0.qualifier
 Bundle-Vendor: Ozon
 Bundle-Activator: ru.ozon.uitp.e2e.Activator
 Bundle-ActivationPolicy: lazy
@@ -18,6 +18,9 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jface,
  org.eclipse.swt,
  org.eclipse.ui.ide,
+ org.eclipse.ui.editors,
+ org.eclipse.ui.workbench.texteditor,
+ org.eclipse.jface.text,
  com._1c.g5.v8.dt.launching.core,
  com._1c.g5.v8.dt.metadata,
  com._1c.g5.v8.dt.bsl.model

@@ -20,6 +20,7 @@ public final class Activator extends AbstractUIPlugin {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		plugin = this;
+		ru.ozon.uitp.e2e.views.BslTestMarkerManager.init();
 	}
 
 	@Override

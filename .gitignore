@@ -6,3 +6,6 @@ build/
 .project
 .settings/
 *.class
+node_modules/
+dist/
+.stage/

@@ -297,7 +297,7 @@ public class TestsView extends ViewPart {
 			if (element instanceof RootSetNode) {
 				RootSetNode n = (RootSetNode) element;
 				return "Набор: " + n.moduleName + "   (тестов: " + n.tests.size()
-						+ "; запуск через мост OZON_UI_Тестирование)";
+						+ "; запуск через мост СП_Тестирование)";
 			}
 			if (element instanceof TestNode) return "🔬 " + ((TestNode) element).name;
 			if (element instanceof RootResultNode) {

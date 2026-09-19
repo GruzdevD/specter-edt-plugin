@@ -37,10 +37,10 @@ public final class BridgeScenario {
 
 	/**
 	 * JSON-тело командного файла для запуска конкретного тестового набора (и
-	 * опционально одного теста внутри него) через движок {@code OZON_UI_Тестирование}.
+	 * опционально одного теста внутри него) через движок {@code СП_Тестирование}.
 	 *
 	 * @param runId      runId этого прогона
-	 * @param moduleName имя BSL-модуля набора (например {@code OZON_UI_Тесты_Контрагенты})
+	 * @param moduleName имя BSL-модуля набора (например {@code СП_Тесты_Контрагенты})
 	 * @param testName   имя конкретного теста набора (может быть empty = весь набор)
 	 * @return JSON-тело {@code {runId, commands:[{action:"runSet", target, test?}]}}
 	 */

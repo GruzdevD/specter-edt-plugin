@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="5b58d7da-a6a5-4dce-b25e-4ea5c6b66008">
+  <name>СП_Тестирование</name>
+  <synonym>
+    <key>ru</key>
+    <value>Спектер: Движок UI-тестирования 1С</value>
+  </synonym>
+  <comment>Движок UI-тестирования и BSL-адаптер Specter. Префикс СП_. Модули тестов создаются разработчиками локально.</comment>
+  <version>0.2.0</version>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:ConfigurationExtension">
+    <managedApplicationModule>Extended</managedApplicationModule>
+  </extension>
+  <containedObjects classId="9cd510cd-abfc-11d4-9434-004095e12fc7" objectId="bc127258-1224-4ea6-9ae0-8e48f280ebf6"/>
+  <containedObjects classId="9fcd25a0-4822-11d4-9414-008048da11f9" objectId="6a186a23-a7dd-4990-831d-e01e13bcf83d"/>
+  <containedObjects classId="e3687481-0a87-462c-a166-9f34594f9bba" objectId="6912068c-1d47-4039-9300-ec441a1f3dbc"/>
+  <containedObjects classId="9de14907-ec23-4a07-96f0-85521cb6b53b" objectId="18a7739d-937f-433f-a8d4-8fa7ee4f5089"/>
+  <containedObjects classId="51f2d5d8-ea4d-4064-8892-82951750031e" objectId="f3a31fbb-39d3-4928-9690-7d26a1ef0d78"/>
+  <containedObjects classId="e68182ea-4237-4383-967f-90c1e3370bc7" objectId="7ae48a5e-a378-43fc-995a-25da64c1937e"/>
+  <containedObjects classId="fb282519-d103-4dd3-bc12-cb271d631dfc" objectId="8d0a2979-f2c1-4ebf-8dd9-0b367b9692c1"/>
+  <namePrefix>СП_</namePrefix>
+  <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
+  <configurationExtensionPurpose>AddOn</configurationExtensionPurpose>
+  <defaultRunMode>ManagedApplication</defaultRunMode>
+  <usePurposes>PersonalComputer</usePurposes>
+  <scriptVariant>Russian</scriptVariant>
+  <usedMobileApplicationFunctionalities>
+    <functionality>
+      <use>true</use>
+    </functionality>
+    <functionality>
+      <functionality>OSBackup</functionality>
+      <use>true</use>
+    </functionality>
+  </usedMobileApplicationFunctionalities>
+  <dataLockControlMode>Managed</dataLockControlMode>
+  <objectAutonumerationMode>NotAutoFree</objectAutonumerationMode>
+  <modalityUseMode>DontUse</modalityUseMode>
+  <synchronousPlatformExtensionAndAddInCallUseMode>DontUse</synchronousPlatformExtensionAndAddInCallUseMode>
+  <compatibilityMode>8.3.21</compatibilityMode>
+  <commonModules>CommonModule.СП_СправочникИмен</commonModules>
+  <commonModules>CommonModule.СП_Протокол</commonModules>
+  <commonModules>CommonModule.СП_ТестовыеДанные</commonModules>
+  <commonModules>CommonModule.СП_Адаптер</commonModules>
+  <commonModules>CommonModule.СП_ТестовыйКлиент</commonModules>
+  <commonModules>CommonModule.СП_ГенераторДанных</commonModules>
+  <commonModules>CommonModule.СП_ДействияКлиент</commonModules>
+  <commonModules>CommonModule.СП_ИнспекторКлиент</commonModules>
+  <commonModules>CommonModule.СП_ОжиданияКлиент</commonModules>
+  <commonModules>CommonModule.СП_ПроксиФормыКлиент</commonModules>
+  <commonModules>CommonModule.СП_Тестирование</commonModules>
+  <commonModules>CommonModule.СП_Утверждения</commonModules>
+  <dataProcessors>DataProcessor.СП_КонсольТестов</dataProcessors>
+  <dataProcessors>DataProcessor.СП_УправлениеФормами</dataProcessors>
+</mdclass:Configuration>

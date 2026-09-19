@@ -23,4 +23,81 @@
             restorable="true">
       </view>
    </extension>
+
+   <!-- Маркер обнаружения теста в редакторе кода BSL (YAxUnit-паттерн) -->
+   <extension
+         id="ru.ozon.uitp.e2e.testMarker"
+         name="СП Тест"
+         point="org.eclipse.core.resources.markers">
+      <super type="org.eclipse.core.resources.textmarker"/>
+      <persistent value="false"/>
+      <attribute name="testName"/>
+      <attribute name="moduleName"/>
+   </extension>
+
+   <!-- Тип аннотации для вертикальной линейки (Gutter Ruler) редактора -->
+   <extension
+         point="org.eclipse.ui.editors.annotationTypes">
+      <type
+            name="ru.ozon.uitp.e2e.testAnnotation"
+            markerType="ru.ozon.uitp.e2e.testMarker"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+   </extension>
+
+   <!-- Спецификация иконки запуска теста на вертикальной линейке (Gutter) -->
+   <extension
+         point="org.eclipse.ui.editors.markerAnnotationSpecification">
+      <specification
+            annotationType="ru.ozon.uitp.e2e.testAnnotation"
+            label="Запустить тест (СП)"
+            icon="icons/specter-tests.png"
+            verticalRulerPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.ruler"
+            verticalRulerPreferenceValue="true"
+            overviewRulerPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.overview"
+            overviewRulerPreferenceValue="true"
+            colorPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.color"
+            colorPreferenceValue="34,197,94"
+            highlightPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.highlight"
+            highlightPreferenceValue="false"
+            textPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.text"
+            textPreferenceValue="false">
+      </specification>
+   </extension>
+
+   <!-- Быстрый запуск теста по клику на маркер / QuickFix -->
+   <extension
+         point="org.eclipse.ui.ide.markerResolution">
+      <markerResolutionGenerator
+            markerType="ru.ozon.uitp.e2e.testMarker"
+            class="ru.ozon.uitp.e2e.views.RunTestMarkerResolutionGenerator">
+      </markerResolutionGenerator>
+   </extension>
+
+   <!-- Команда в контекстном меню редактора BSL: Запустить тест СП -->
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <viewerContribution
+            id="ru.ozon.uitp.e2e.editor.popup"
+            targetID="#CompilationUnitEditorContext">
+         <action
+               id="ru.ozon.uitp.e2e.actions.runTestAtCursor"
+               label="Запустить тест (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.views.RunTestAtCursorAction"
+               menubarPath="additions">
+         </action>
+      </viewerContribution>
+      <viewerContribution
+            id="ru.ozon.uitp.e2e.editor.bsl.popup"
+            targetID="com._1c.g5.v8.dt.bsl.ui.BslEditor.EditorContext">
+         <action
+               id="ru.ozon.uitp.e2e.actions.runTestAtCursorBsl"
+               label="Запустить тест (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.views.RunTestAtCursorAction"
+               menubarPath="additions">
+         </action>
+      </viewerContribution>
+   </extension>
 </plugin>
