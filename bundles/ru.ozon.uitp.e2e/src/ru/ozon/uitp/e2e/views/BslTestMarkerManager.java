@@ -188,7 +188,7 @@ public final class BslTestMarkerManager {
 	 * Запуск одного теста из модуля через живой мост СП_Тестирование.
 	 */
 	public static void runSingleTest(String moduleName, String testName) {
-		String runId = LaunchMonitor.generateRunId();
+		String runId = LaunchMonitor.newRunId();
 		String commands = BridgeScenario.runSetJson(runId, moduleName, testName);
 
 		LaunchMonitor.info("EDT Gutter: Запуск одиночного теста " + moduleName + "." + testName + " runId=" + runId);
