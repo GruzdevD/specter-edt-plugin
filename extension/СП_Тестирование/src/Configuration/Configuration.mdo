@@ -35,7 +35,7 @@
   <objectAutonumerationMode>NotAutoFree</objectAutonumerationMode>
   <synchronousPlatformExtensionAndAddInCallUseMode>DontUse</synchronousPlatformExtensionAndAddInCallUseMode>
   <commonModules>CommonModule.СП_СправочникИменКлиент</commonModules>
-  <commonModules>CommonModule.СП_Протокол</commonModules>
+  <commonModules>CommonModule.СП_ПротоколВызовСервера</commonModules>
   <commonModules>CommonModule.СП_ТестовыеДанные</commonModules>
   <commonModules>CommonModule.СП_АдаптерКлиент</commonModules>
   <commonModules>CommonModule.СП_ТестовыйКлиент</commonModules>

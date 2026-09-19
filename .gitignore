@@ -9,3 +9,6 @@ build/
 node_modules/
 dist/
 .stage/
+
+# служебные бэкапы EDT (Configuration.mdo.bak-* и т.п.)
+*.bak-*
