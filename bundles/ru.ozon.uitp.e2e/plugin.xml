@@ -4,7 +4,7 @@
    <extension point="org.eclipse.ui.commands">
       <category
             id="ru.ozon.uitp.e2e.category"
-            name="UITP E2E">
+            name="Specter">
       </category>
       <command
             id="ru.ozon.uitp.e2e.command.runScenario"
@@ -21,7 +21,7 @@
    <extension point="org.eclipse.ui.views">
       <category
             id="ru.ozon.uitp.e2e.views.category"
-            name="UITP E2E (1C:UIxUnit)">
+            name="Specter">
       </category>
       <view
             id="ru.ozon.uitp.e2e.views.TestsView"
@@ -41,7 +41,7 @@
             locationURI="menu:org.eclipse.ui.main.menu?after=additions">
          <menu
                id="ru.ozon.uitp.e2e.menu"
-               label="UITP E2E"
+               label="Specter"
                mnemonic="U">
             <command
                   commandId="ru.ozon.uitp.e2e.command.runScenario"

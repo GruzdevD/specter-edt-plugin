@@ -39,7 +39,7 @@ public class RunScenarioHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		Job job = new Job("UITP: запуск тонкого клиента АУФ (живой мост)") {
+		Job job = new Job("Specter: запуск тонкого клиента АУФ (живой мост)") {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
 				try {

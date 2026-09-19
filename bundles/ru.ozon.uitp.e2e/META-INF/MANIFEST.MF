@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: UITP E2E - EDT plugin (ui-test-platform)
+Bundle-Name: Specter - EDT plugin (UI-тестирование 1С)
 Bundle-SymbolicName: ru.ozon.uitp.e2e;singleton:=true
 Bundle-Version: 0.1.0.qualifier
 Bundle-Vendor: Ozon

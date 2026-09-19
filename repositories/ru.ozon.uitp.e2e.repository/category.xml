@@ -3,5 +3,5 @@
    <feature id="ru.ozon.uitp.e2e.feature" version="0.0.0">
       <category name="uitp-e2e"/>
    </feature>
-   <category-def name="uitp-e2e" label="UITP E2E (EDT)"/>
+   <category-def name="uitp-e2e" label="Specter"/>
 </site>

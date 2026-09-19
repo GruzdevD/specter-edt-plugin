@@ -50,21 +50,21 @@ public final class BridgeRunner {
 	 */
 	public static void runAsync(final String commandsJson,
 			final Callback onResult, final ErrorCallback onError) {
-		Job job = new Job("UITP: запуск тонкого клиента АУФ (живой мост)") {
+		Job job = new Job("Specter: запуск тонкого клиента АУФ (живой мост)") {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
 				try {
 					File outDir = LaunchMonitor.outDir();
 					String runId = LaunchMonitor.newRunId();
 					LaunchMonitor.writeCommands(outDir, commandsJson);
-					LaunchMonitor.info("UITP view: командный файл моста записан runId=" + runId);
+					LaunchMonitor.info("Specter view: командный файл моста записан runId=" + runId);
 
 					ILaunch launch = BridgeLaunchHelper.launchClient("run");
 					if (launch == null) {
 						return reportError(onError, "Клиент передан на запуск, но ILaunch не найден "
 								+ "(запуск мог не стартовать)");
 					}
-					LaunchMonitor.info("UITP view: тонкий клиент запущен: "
+					LaunchMonitor.info("Specter view: тонкий клиент запущен: "
 							+ launch.getLaunchConfiguration().getName());
 
 					File result = LaunchMonitor.waitForBridgeResult(
@@ -75,7 +75,7 @@ public final class BridgeRunner {
 								? "контролируемый процесс завершился с кодом " + exit
 										+ " без файла результата"
 								: "таймаут ожидания результата моста";
-						LaunchMonitor.info("UITP view: результат не получен: " + reason);
+						LaunchMonitor.info("Specter view: результат не получен: " + reason);
 						return reportError(onError, "Результат моста не получен: " + reason);
 					}
 
@@ -85,7 +85,7 @@ public final class BridgeRunner {
 						return reportError(onError, "Результат моста прочитан, но не разобран ("
 								+ result.getAbsolutePath() + ")");
 					}
-					LaunchMonitor.info("UITP view: мост завершился status=" + br.status
+					LaunchMonitor.info("Specter view: мост завершился status=" + br.status
 							+ " steps=" + br.steps.size());
 					// Публикуем на UI-потоке, чтобы панели обновились корректно.
 					org.eclipse.swt.widgets.Display.getDefault().asyncExec(() -> {
