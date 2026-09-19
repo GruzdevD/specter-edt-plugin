@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-1C:Specter Parallel Headless CLI Runner & Test Sharding Tool
+1C:Specter Parallel Headless CLI Runner & Smart Retry Sharding Tool
 Executes 1C:Specter UI tests in parallel using isolated temporary directories
-and generates a consolidated JUnit XML report for CI/CD pipelines.
+with Smart Retry support and consolidated JUnit XML reporting for CI/CD pipelines.
 """
 
 import argparse
@@ -19,16 +19,13 @@ import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+FAILED_TESTS_CACHE_FILE = ".specter_failed_tests.json"
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="1C:Specter Parallel CLI Test Runner (CI/CD Sharding)",
+        description="1C:Specter Parallel CLI Test Runner with Smart Retry (CI/CD Sharding)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "--out-dir",
-        default="",
-        help="Optional fallback directory for exchange files (if not using tempdirs)",
     )
     parser.add_argument(
         "--workers",
@@ -83,6 +80,11 @@ def parse_args():
         "--report-path",
         default="junit-report.xml",
         help="Path where final consolidated JUnit XML report will be generated",
+    )
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="Smart Retry mode: if .specter_failed_tests.json exists, execute only previously failed tests",
     )
     return parser.parse_args()
 
@@ -154,7 +156,7 @@ def run_worker(worker_id: int, module_name: str, test_name: str, client_path: st
     commands_file = temp_path / "bridge-commands.json"
     result_file = temp_path / f"bridge-result-{run_id}.json"
 
-    print(f"[Worker {worker_id}] Starting module '{module_name or 'ALL'}' (runId: {run_id[:8]}...) in {temp_path.name}")
+    print(f"[Worker {worker_id}] Starting module '{module_name or 'ALL'}' (test: {test_name or 'ALL'}, runId: {run_id[:8]}...) in {temp_path.name}")
 
     command_payload = {
         "runId": run_id,
@@ -218,12 +220,13 @@ def run_worker(worker_id: int, module_name: str, test_name: str, client_path: st
             return {
                 "worker_id": worker_id,
                 "module": module_name or "DefaultModule",
+                "test": test_name or "",
                 "run_id": run_id,
                 "status": "failed",
                 "duration": duration,
                 "steps": [{
                     "id": 1,
-                    "action": f"WorkerRun_{module_name or 'All'}",
+                    "action": test_name or f"WorkerRun_{module_name or 'All'}",
                     "status": "failed",
                     "message": err_msg,
                     "durationMs": int(duration * 1000),
@@ -238,6 +241,7 @@ def run_worker(worker_id: int, module_name: str, test_name: str, client_path: st
         return {
             "worker_id": worker_id,
             "module": module_name or "DefaultModule",
+            "test": test_name or "",
             "run_id": run_id,
             "status": status,
             "duration": duration,
@@ -252,12 +256,13 @@ def run_worker(worker_id: int, module_name: str, test_name: str, client_path: st
         return {
             "worker_id": worker_id,
             "module": module_name or "DefaultModule",
+            "test": test_name or "",
             "run_id": run_id,
             "status": "error",
             "duration": duration,
             "steps": [{
                 "id": 1,
-                "action": f"WorkerException_{module_name or 'All'}",
+                "action": test_name or f"WorkerException_{module_name or 'All'}",
                 "status": "error",
                 "message": err_msg,
                 "durationMs": int(duration * 1000),
@@ -295,20 +300,16 @@ def generate_consolidated_junit(results: list, report_path: Path):
                     total_errors += 1
 
     testsuites = ET.Element("testsuites", {
-        "name": "Specter Parallel 1C UI Tests",
+        "name": "Specter Parallel Smart Retry 1C UI Tests",
         "tests": str(total_tests),
         "failures": str(total_failures),
         "errors": str(total_errors),
         "time": f"{total_time:.3f}",
     })
 
-    # Group by test suite / module
     modules_map = {}
     for res in results:
         mod = res.get("module", "DefaultSuite")
-        if mod not in modules_map:
-            modules_map.append(mod) if mod not in modules_map else None
-            # actually store in dict
         if mod not in modules_map:
             modules_map[mod] = []
         modules_map[mod].append(res)
@@ -346,7 +347,6 @@ def generate_consolidated_junit(results: list, report_path: Path):
 
         for r in mod_results:
             steps = r.get("steps", [])
-            run_id = r.get("run_id", "")
             if not steps:
                 tc_name = f"{mod_name}_Run"
                 testcase = ET.SubElement(testsuite, "testcase", {
@@ -403,37 +403,55 @@ def generate_consolidated_junit(results: list, report_path: Path):
 def main():
     args = parse_args()
     report_path = Path(args.report_path).resolve()
+    failed_cache_path = Path(FAILED_TESTS_CACHE_FILE)
 
     print("========================================")
-    print(" 1C:Specter Parallel CLI Test Runner  ")
+    print(" 1C:Specter Parallel Smart Retry CLI  ")
     print("========================================")
     print(f"Workers:       {args.workers}")
     print(f"Client Path:   {args.client_path}")
     print(f"Timeout:       {args.timeout}s")
     print(f"Report Output: {report_path}")
+    print(f"Retry Failed:  {args.retry_failed}")
     print("----------------------------------------")
 
-    # Determine list of test modules/suites to execute
     tasks = []
-    if args.test_list and Path(args.test_list).exists():
-        try:
-            with open(args.test_list, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    for item in data:
-                        if isinstance(item, str):
-                            tasks.append((item, args.test))
-                        elif isinstance(item, dict):
-                            tasks.append((item.get("module", ""), item.get("test", args.test)))
-                elif isinstance(data, dict) and "modules" in data:
-                    for mod in data["modules"]:
-                        tasks.append((mod, args.test))
-        except Exception as e:
-            print(f"WARNING: Failed to parse test list file '{args.test_list}': {e}", file=sys.stderr)
+
+    # Smart Retry logic: if --retry-failed is set and cache exists, load tasks from cache
+    if args.retry_failed and failed_cache_path.exists():
+        print(f"Smart Retry active: loading failed tests from '{failed_cache_path}'...")
+        cached_data = read_json_safe(failed_cache_path)
+        if cached_data and isinstance(cached_data, list):
+            for item in cached_data:
+                if isinstance(item, dict):
+                    mod = item.get("module", "")
+                    tst = item.get("test", "")
+                    if mod or tst:
+                        tasks.append((mod, tst))
+            print(f"Loaded {len(tasks)} failed test tasks for retry.")
+        else:
+            print("Cached failed tests file is empty or invalid. Falling back to normal execution.")
 
     if not tasks:
-        # Fallback to single module or empty (all suites)
-        tasks.append((args.module, args.test))
+        # Load from --test-list or arguments
+        if args.test_list and Path(args.test_list).exists():
+            try:
+                with open(args.test_list, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, str):
+                                tasks.append((item, args.test))
+                            elif isinstance(item, dict):
+                                tasks.append((item.get("module", ""), item.get("test", args.test)))
+                    elif isinstance(data, dict) and "modules" in data:
+                        for mod in data["modules"]:
+                            tasks.append((mod, args.test))
+            except Exception as e:
+                print(f"WARNING: Failed to parse test list file '{args.test_list}': {e}", file=sys.stderr)
+
+        if not tasks:
+            tasks.append((args.module, args.test))
 
     print(f"Total test execution tasks scheduled: {len(tasks)}")
 
@@ -456,10 +474,10 @@ def main():
                 user=args.user,
                 password=args.password,
             )
-            future_to_task[future] = (idx, mod_name)
+            future_to_task[future] = (idx, mod_name, test_name)
 
         for future in concurrent.futures.as_completed(future_to_task):
-            idx, mod_name = future_to_task[future]
+            idx, mod_name, test_name = future_to_task[future]
             try:
                 res = future.result()
                 results.append(res)
@@ -468,6 +486,7 @@ def main():
                 results.append({
                     "worker_id": idx,
                     "module": mod_name or "DefaultModule",
+                    "test": test_name or "",
                     "run_id": "exception",
                     "status": "error",
                     "duration": 0.0,
@@ -480,21 +499,47 @@ def main():
     # Generate consolidated JUnit XML
     generate_consolidated_junit(results, report_path)
 
-    # Calculate overall success
+    # Evaluate failures and collect failed tests for Smart Retry cache
+    new_failed_tasks = []
     failed_runs = 0
     total_steps_passed = 0
     total_steps_failed = 0
 
     for r in results:
         st = r.get("status", "").lower()
-        if st != "passed":
-            failed_runs += 1
-        for s in r.get("steps", []):
-            sst = str(s.get("status", "")).lower()
-            if sst == "passed":
-                total_steps_passed += 1
-            elif sst in ("failed", "failure", "error", "aborted", "timeout"):
+        has_failure = (st != "passed")
+        steps = r.get("steps", [])
+        
+        if steps:
+            for s in steps:
+                sst = str(s.get("status", "")).lower()
+                if sst == "passed":
+                    total_steps_passed += 1
+                elif sst in ("failed", "failure", "error", "aborted", "timeout"):
+                    total_steps_failed += 1
+                    has_failure = True
+        else:
+            if has_failure:
                 total_steps_failed += 1
+
+        if has_failure:
+            failed_runs += 1
+            new_failed_tasks.append({
+                "module": r.get("module", ""),
+                "test": r.get("test", ""),
+            })
+
+    # Smart Retry cache update
+    if new_failed_tasks:
+        print(f"\n[Smart Retry] Found {len(new_failed_tasks)} failed test tasks. Updating '{FAILED_TESTS_CACHE_FILE}' cache...")
+        atomic_write_json(failed_cache_path, new_failed_tasks)
+    else:
+        print(f"\n[Smart Retry] All tests passed successfully! Removing '{FAILED_TESTS_CACHE_FILE}' cache if exists...")
+        if failed_cache_path.exists():
+            try:
+                failed_cache_path.unlink()
+            except OSError:
+                pass
 
     print("\n========================================")
     print(f" Parallel Execution Summary              ")

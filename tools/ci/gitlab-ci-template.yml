@@ -1,4 +1,4 @@
-# GitLab CI Pipeline Template for 1C:Specter Parallel E2E UI Tests
+# GitLab CI Pipeline Template for 1C:Specter Parallel E2E UI Tests with Smart Retry
 # Copy this template or include it in your 1C project's .gitlab-ci.yml
 
 stages:
@@ -13,13 +13,19 @@ e2e-tests-1c:
     SPECTER_CLIENT_PATH: "1cv8c"
     SPECTER_IB_CONN: "File=\"/var/lib/1c/infobases/test_ib\""
     WORKERS_COUNT: "4"
+  cache:
+    key: "specter-failed-tests-cache"
+    paths:
+      - .specter_failed_tests.json
+    policy: always
   script:
-    - echo "Initializing 1C:Specter Parallel Headless Test Execution..."
+    - echo "Initializing 1C:Specter Parallel Headless Test Execution with Smart Retry..."
     - python tools/ci/specter-cli.py \
         --workers $WORKERS_COUNT \
         --client-path "$SPECTER_CLIENT_PATH" \
         --ib-conn "$SPECTER_IB_CONN" \
         --timeout 600 \
+        --retry-failed \
         --report-path junit-report.xml
   artifacts:
     name: "specter-test-reports"

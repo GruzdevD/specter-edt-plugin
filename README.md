@@ -106,16 +106,15 @@ tools/ci/                          Скрипт CLI-раннера (specter-cli.
 
 ---
 
-## 🤖 Интеграция с CI/CD и Параллельный запуск (Test Sharding)
+## 🤖 Интеграция с CI/CD, Параллельный запуск и Smart Retry
 
-Фреймворк **Specter** поддерживает автоматизированный безинтерфейсный (headless) запуск UI-тестов 1С в CI/CD пайплайнах (GitLab CI, GitHub Actions, Jenkins и др.) как в одиночном, так и в **параллельном** режиме (Test Sharding) для максимального ускорения проверок.
+Фреймворк **Specter** поддерживает автоматизированный безинтерфейсный (headless) запуск UI-тестов 1С в CI/CD пайплайнах (GitLab CI, GitHub Actions, Jenkins и др.) как в одиночном, так и в **параллельном** режиме (Test Sharding) с поддержкой **Smart Retry**.
 
-### Архитектура и изоляция файлов (`specter-cli.py`)
+### Архитектура, изоляция ФС и Smart Retry (`specter-cli.py`)
 
-Тонкий клиент 1С (`1cv8c`) является однопоточным приложением. Для параллельного выполнения наборов тестов утилита `tools/ci/specter-cli.py` использует пул потоков (`ThreadPoolExecutor`) и стандартный модуль Python `tempfile`.
-
-- **Изоляция ФС**: Каждый воркер создает собственную временную изолированную папку в системном каталоге ОС (`tempfile.TemporaryDirectory()`). Взаимодействие раннера с экземпляром 1С через `bridge-commands.json` и `bridge-result-<runId>.json` происходит внутри этой временной папки. В корне репозитория CI-раннера не создается никакого мусора — сохраняется только финальный агрегированный `junit-report.xml`.
-- **Атомарность**: Запись файлов команд выполняется атомарно, исключая гонку потоков и чтение неполных JSON-структур.
+Тонкий клиент 1С (`1cv8c`) является однопоточным приложением. Утилита `tools/ci/specter-cli.py` обеспечивает:
+- **Изоляция ФС**: Каждый воркер создает собственную временную изолированную папку в системном каталоге ОС (`tempfile.TemporaryDirectory()`). Взаимодействие раннера с экземпляром 1С через `bridge-commands.json` и `bridge-result-<runId>.json` происходит внутри этой временной папки. В корне репозитория CI-раннера сохраняется только финальный агрегированный `junit-report.xml` и файл кэша упавших тестов.
+- **Smart Retry (Умный перезапуск)**: При включенном ключе `--retry-failed` скрипт проверяет наличие файла `.specter_failed_tests.json`. Если файл существует, скрипт выполняет **исключительно тесты, упавшие в прошлый раз**, экономя минуты процессорного времени CI. По завершении прогона кэш автоматически обновляется (при новых падениях) или удаляется (если все тесты прошли успешно).
 
 ---
 
@@ -129,9 +128,9 @@ tools/ci/                          Скрипт CLI-раннера (specter-cli.
 
 ---
 
-### 1. Использование параллельного CLI-раннера
+### 1. Использование параллельного CLI-раннера с Smart Retry
 
-Пример запуска локально или на CI/CD раннере с 4 параллельными воркерами:
+Пример запуска локально или на CI/CD раннере:
 
 ```bash
 python3 tools/ci/specter-cli.py \
@@ -140,22 +139,15 @@ python3 tools/ci/specter-cli.py \
   --ib-conn "File=\"C:\1C\Bases\DemoDB\"" \
   --user "Administrator" \
   --timeout 600 \
+  --retry-failed \
   --report-path "junit-report.xml"
 ```
-
-Аргументы командной строки `specter-cli.py`:
-- `--workers <N>` — количество параллельных процессов (по умолчанию `1`).
-- `--test-list <path>` — путь к JSON-файлу со списком тестовых модулей для распределения по воркерам.
-- `--client-path <path>` — путь к исполняемому файлу тонкого клиента 1С (`1cv8c` / `1cv8.exe`).
-- `--ib-conn <str>` — строка подключения к информационной базе 1С (`File="..."` или `Srvr="..."`).
-- `--timeout <sec>` — таймаут ожидания выполнения тестов воркером (по умолчанию `300s`).
-- `--report-path <path>` — путь для сохранения итогового сводного отчета JUnit XML.
 
 ---
 
 ### 2. Шаблон GitLab CI Пайплайна (`tools/ci/gitlab-ci-template.yml`)
 
-В репозитории подготовлен эталонный шаблон [tools/ci/gitlab-ci-template.yml](tools/ci/gitlab-ci-template.yml). Скопируйте его содержимое или подключите в ваш `.gitlab-ci.yml`:
+В репозитории подготовлен эталонный шаблон [tools/ci/gitlab-ci-template.yml](tools/ci/gitlab-ci-template.yml) с настройкой кэширования `.specter_failed_tests.json` для кнопки **Retry** в GitLab:
 
 ```yaml
 stages:
@@ -170,13 +162,19 @@ e2e-tests-1c:
     SPECTER_CLIENT_PATH: "1cv8c"
     SPECTER_IB_CONN: "File=\"/var/lib/1c/infobases/test_ib\""
     WORKERS_COUNT: "4"
+  cache:
+    key: "specter-failed-tests-cache"
+    paths:
+      - .specter_failed_tests.json
+    policy: always
   script:
-    - echo "Running 1C:Specter Parallel Headless Tests..."
+    - echo "Running 1C:Specter Parallel Headless Tests with Smart Retry..."
     - python3 tools/ci/specter-cli.py \
         --workers $WORKERS_COUNT \
         --client-path "$SPECTER_CLIENT_PATH" \
         --ib-conn "$SPECTER_IB_CONN" \
         --timeout 600 \
+        --retry-failed \
         --report-path junit-report.xml
   artifacts:
     name: "specter-parallel-reports"
@@ -192,12 +190,10 @@ e2e-tests-1c:
 
 ---
 
-### 3. Интеграция с Merge Request (GitLab UI)
+### 3. Интеграция с Merge Request и кнопкой Retry (GitLab UI)
 
-Благодаря формированию стандартизированного **JUnit XML** (`reports: junit: junit-report.xml`):
-- GitLab автоматически отображает интерактивный виджет **Unit Tests** прямо в интерфейсе **Merge Request**.
-- Ревьюеры видят зеленые (пройденные), синие (пропущенные) и красные (упавшие) тесты без необходимости скачивать полные архивы логов.
-- Детализированная трассировка шагов доступна во вкладке **Pipelines → Tests**.
+1. **Интеграция с MR**: Отчет `junit-report.xml` выводит встроенный виджет **Unit Tests** в GitLab Merge Request.
+2. **Smart Retry**: Если сборка упала из-за нестабильного теста (flaky test), при нажатии кнопки **Retry** в GitLab кэш восстанавливает файл `.specter_failed_tests.json`. Раннер автоматически запускает **только упавший тест**, экономя время выполнения пайплайна. После успешного прогона кэш автоматически очищается.
 
 ---
 
