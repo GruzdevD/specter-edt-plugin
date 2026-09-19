@@ -18,6 +18,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
@@ -28,6 +29,7 @@ import ru.ozon.uitp.e2e.Activator;
 /**
  * Диалоговое окно Eclipse для выбора и конвертации распознанных тестов Vanessa Automation
  * в новые программные модули расширения 1C:EDT.
+ * Позволяет указывать и выбирать произвольный каталог тестов непосредственно в диалоге.
  */
 public class VanessaConvertDialog extends TitleAreaDialog {
 
@@ -47,7 +49,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 	public void create() {
 		super.create();
 		setTitle("Конвертация тестов Vanessa Automation в модули СП_Тестирование");
-		setMessage("Выберите тесты Vanessa (.feature) для преобразования в программные BSL модули расширения (1 тест = 1 CommonModule)");
+		setMessage("Укажите каталог со сценариями .feature и выберите тесты для преобразования в BSL модули (1 тест = 1 CommonModule)");
 	}
 
 	@Override
@@ -55,22 +57,50 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		Composite area = (Composite) super.createDialogArea(parent);
 		Composite container = new Composite(area, SWT.NONE);
 		container.setLayoutData(new GridData(GridData.FILL_BOTH));
-		GridLayout layout = new GridLayout(3, false);
+		GridLayout layout = new GridLayout(4, false);
 		layout.marginWidth = 15;
 		layout.marginHeight = 15;
 		container.setLayout(layout);
 
-		// 1. Поле пути к тестам Ванессы
+		// 1. Поле пути к тестам Ванессы (редактируемое + кнопка Обзор)
 		Label pathLabel = new Label(container, SWT.NONE);
 		pathLabel.setText("Каталог тестов Vanessa:");
 
-		pathText = new Text(container, SWT.BORDER | SWT.READ_ONLY);
+		pathText = new Text(container, SWT.BORDER);
 		pathText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+		pathText.setMessage("Укажите путь к папке с .feature файлами...");
 		String configuredPath = Activator.getVanessaTestsPath();
 		pathText.setText(configuredPath != null ? configuredPath : "");
 
+		// Запуск сканирования по нажатию Enter в поле ввода пути
+		pathText.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {
+				performScan();
+			}
+		});
+
+		Button browseButton = new Button(container, SWT.PUSH);
+		browseButton.setText("Обзор...");
+		browseButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				DirectoryDialog dirDialog = new DirectoryDialog(getShell(), SWT.OPEN);
+				dirDialog.setText("Выберите каталог тестов Vanessa Automation (.feature)");
+				String cur = pathText.getText().trim();
+				if (!cur.isEmpty() && new File(cur).exists()) {
+					dirDialog.setFilterPath(cur);
+				}
+				String selected = dirDialog.open();
+				if (selected != null && !selected.trim().isEmpty()) {
+					pathText.setText(selected.trim());
+					performScan();
+				}
+			}
+		});
+
 		Button scanButton = new Button(container, SWT.PUSH);
-		scanButton.setText("Сканировать тесты");
+		scanButton.setText("Сканировать");
 		scanButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -81,13 +111,13 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		// 2. Список найденных тестов (Таблица с чекбоксами)
 		Label listLabel = new Label(container, SWT.NONE);
 		listLabel.setText("Обнаруженные тесты Vanessa Automation:");
-		GridData listLabelData = new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1);
+		GridData listLabelData = new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1);
 		listLabel.setLayoutData(listLabelData);
 
 		Table table = new Table(container, SWT.CHECK | SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL | SWT.FULL_SELECTION);
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
-		GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1);
+		GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1);
 		tableData.heightHint = 180;
 		table.setLayoutData(tableData);
 
@@ -118,7 +148,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		// 3. Кнопки Выбрать все / Снять все
 		Composite btnBar = new Composite(container, SWT.NONE);
 		btnBar.setLayout(new GridLayout(3, false));
-		btnBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1));
+		btnBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1));
 
 		Button selectAllBtn = new Button(btnBar, SWT.PUSH);
 		selectAllBtn.setText("Выбрать все");
@@ -147,10 +177,10 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		// 4. Предпросмотр генерируемого BSL кода
 		Label previewLabel = new Label(container, SWT.NONE);
 		previewLabel.setText("Предпросмотр генерируемого BSL кода (СП_Тестирование):");
-		previewLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1));
+		previewLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1));
 
 		previewText = new Text(container, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL | SWT.READ_ONLY);
-		GridData previewData = new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1);
+		GridData previewData = new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1);
 		previewData.heightHint = 120;
 		previewText.setLayoutData(previewData);
 		previewText.setText("// Выберите тест из списка выше для предпросмотра структуры BSL-модуля");
@@ -174,7 +204,31 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 	}
 
 	private void performScan() {
-		scenarios = manager.scanConfiguredVanessaTests();
+		String targetPath = pathText.getText().trim();
+		if (targetPath.isEmpty()) {
+			String configuredPath = Activator.getVanessaTestsPath();
+			if (configuredPath != null && !configuredPath.trim().isEmpty()) {
+				targetPath = configuredPath.trim();
+				pathText.setText(targetPath);
+			}
+		}
+
+		if (targetPath.isEmpty()) {
+			scenarios = new ArrayList<>();
+			tableViewer.setInput(scenarios);
+			statusLabel.setText("Укажите каталог тестов для поиска .feature сценариев");
+			return;
+		}
+
+		File dir = new File(targetPath);
+		if (!dir.exists() || !dir.isDirectory()) {
+			scenarios = new ArrayList<>();
+			tableViewer.setInput(scenarios);
+			statusLabel.setText("Каталог не найден: " + targetPath);
+			return;
+		}
+
+		scenarios = manager.scanDirectory(dir);
 		tableViewer.setInput(scenarios);
 		tableViewer.setAllChecked(true);
 		updateSelectedStatus();
@@ -238,3 +292,4 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		}
 	}
 }
+

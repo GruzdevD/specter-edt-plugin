@@ -38,6 +38,7 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
   onNavigateToRunner,
   onNavigateToSettings
 }) => {
+  const [currentPath, setCurrentPath] = useState<string>(vanessaPath);
   const [tests, setTests] = useState<VanessaTestItem[]>(INITIAL_VANESSA_TESTS);
   const [selectedIds, setSelectedIds] = useState<string[]>(INITIAL_VANESSA_TESTS.map(t => t.id));
   const [activeTestId, setActiveTestId] = useState<string>(INITIAL_VANESSA_TESTS[0].id);
@@ -67,6 +68,13 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
 
     return matchesSearch && matchesTag;
   });
+
+  const handleScanPath = (newPath: string) => {
+    setCurrentPath(newPath);
+    setTests(INITIAL_VANESSA_TESTS);
+    setSelectedIds(INITIAL_VANESSA_TESTS.map(t => t.id));
+    setConversionSuccess(false);
+  };
 
   const toggleSelect = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -116,69 +124,104 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Top Banner: Path & Recognition Status */}
-      <div className={`p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs ${
+      <div className={`p-4 rounded-xl border flex flex-col gap-3 shadow-xs ${
         theme === 'dark' ? 'bg-[#252526] border-[#3c3c3c]' : 'bg-white border-slate-200'
       }`}>
-        <div className="space-y-1">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="p-1 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+            <span className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
               <Zap className="w-4 h-4" />
             </span>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              Конвертер тестов Vanessa Automation → Модули расширения (СП_Тестирование)
-            </h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-              1 тест = 1 CommonModule
-            </span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Конвертер тестов Vanessa Automation → Модули расширения (СП_Тестирование)
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  1 тест = 1 CommonModule
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Автоматический парсинг .feature сценариев, генерация BSL-кода с проверками СП_ и регистрация в метаданных EDT
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <span>Каталог тестов:</span>
-            <code className="px-2 py-0.5 rounded font-mono text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-              {vanessaPath}
-            </code>
-            {onNavigateToSettings && (
-              <button 
-                onClick={onNavigateToSettings}
-                className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
-              >
-                (Изменить в Preferences)
-              </button>
-            )}
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleConvert}
+              disabled={selectedIds.length === 0 || isConverting}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs ${
+                selectedIds.length > 0 && !isConverting
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer active:scale-98'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <Boxes className="w-4 h-4" />
+              <span>
+                {isConverting 
+                  ? `Конвертация (${conversionProgress}%)...` 
+                  : `Конвертировать (${selectedIds.length})`}
+              </span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
-          <button
-            onClick={() => {
-              setTests(INITIAL_VANESSA_TESTS);
-              setSelectedIds(INITIAL_VANESSA_TESTS.map(t => t.id));
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-colors ${
-              theme === 'dark'
-                ? 'bg-[#2d2d2d] hover:bg-[#3c3c3c] border-[#4c4c4c] text-slate-300'
-                : 'bg-slate-50 hover:bg-slate-100 border-slate-300 text-slate-700'
-            }`}
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Пересканировать</span>
-          </button>
+        {/* Path configuration row with custom input, browse & scan */}
+        <div className={`p-3 rounded-lg border flex flex-col sm:flex-row items-stretch sm:items-center gap-2 text-xs ${
+          theme === 'dark' ? 'bg-[#1e1e1e] border-[#3c3c3c]' : 'bg-slate-50/90 border-slate-200'
+        }`}>
+          <div className="flex items-center gap-1.5 shrink-0 text-slate-700 dark:text-slate-300 font-semibold">
+            <FolderOpen className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>Каталог тестов:</span>
+          </div>
 
-          <button
-            onClick={handleConvert}
-            disabled={selectedIds.length === 0 || isConverting}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-xs ${
-              selectedIds.length > 0 && !isConverting
-                ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer active:scale-98'
-                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-            }`}
-          >
-            <Boxes className="w-4 h-4" />
-            <span>
-              {isConverting 
-                ? `Конвертация (${conversionProgress}%)...` 
-                : `Конвертировать (${selectedIds.length})`}
-            </span>
-          </button>
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={currentPath}
+              onChange={(e) => setCurrentPath(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleScanPath(currentPath)}
+              placeholder="Укажите путь к каталогу со сценариями .feature..."
+              className={`w-full px-3 py-1.5 text-xs font-mono rounded-md border outline-hidden transition-all ${
+                theme === 'dark'
+                  ? 'bg-[#252526] border-[#4c4c4c] text-slate-200 focus:border-indigo-500'
+                  : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500'
+              }`}
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => handleScanPath('/workspace/custom-tests/features')}
+              title="Выбрать каталог в проводнике (DirectoryDialog)"
+              className={`px-2.5 py-1.5 rounded-md text-xs font-semibold border flex items-center gap-1 transition-colors ${
+                theme === 'dark'
+                  ? 'bg-[#2d2d2d] hover:bg-[#3c3c3c] border-[#4c4c4c] text-slate-200'
+                  : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+              }`}
+            >
+              <FolderPlus className="w-3.5 h-3.5 text-amber-500" />
+              <span>Обзор...</span>
+            </button>
+
+            <button
+              onClick={() => handleScanPath(currentPath)}
+              className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Сканировать</span>
+            </button>
+
+            {onNavigateToSettings && (
+              <button 
+                onClick={onNavigateToSettings}
+                className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold ml-1 hidden sm:inline"
+              >
+                (в Preferences)
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
