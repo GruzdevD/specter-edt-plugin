@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Версия релиза (например 0.3.2)'
+        description: 'Версия релиза (например 0.3.3)'
         required: false
-        default: '0.3.2'
+        default: '0.3.3'
 
 permissions:
   contents: write

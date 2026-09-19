@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
+   <!-- Ранний запуск плагина для мгновенного обнаружения тестов в BSL-редакторах -->
+   <extension
+         point="org.eclipse.ui.startup">
+      <startup
+            class="ru.ozon.uitp.e2e.Startup">
+      </startup>
+   </extension>
+
+   <!-- Панели представлений Specter -->
    <extension point="org.eclipse.ui.views">
       <category
             id="ru.ozon.uitp.e2e.views.category"
@@ -32,7 +41,7 @@
       </view>
    </extension>
 
-   <!-- Маркер обнаружения теста в редакторе кода BSL (YAxUnit-паттерн) -->
+   <!-- Маркер обнаружения теста в редакторе кода BSL (Gutter / YAxUnit / Specter) -->
    <extension
          id="ru.ozon.uitp.e2e.testMarker"
          name="СП Тест"
@@ -69,7 +78,9 @@
             highlightPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.highlight"
             highlightPreferenceValue="false"
             textPreferenceKey="ru.ozon.uitp.e2e.testAnnotation.text"
-            textPreferenceValue="false">
+            textPreferenceValue="false"
+            showInNextPrevDropdownToolbarAction="true"
+            isGoToNextNavigationTarget="true">
       </specification>
    </extension>
 
@@ -82,49 +93,236 @@
       </markerResolutionGenerator>
    </extension>
 
-   <!-- Команда в контекстном меню редактора BSL: Запустить тест СП -->
+   <!-- Команды Eclipse 4 / Workbench -->
+   <extension
+         point="org.eclipse.ui.commands">
+      <category
+            id="ru.ozon.uitp.e2e.commands.category"
+            name="Specter 1C Тестирование">
+      </category>
+      <command
+            id="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+            name="Запустить тест (СП_Тестирование)"
+            description="Запускает тест под курсором или ближайший тест модуля"
+            categoryId="ru.ozon.uitp.e2e.commands.category">
+      </command>
+      <command
+            id="ru.ozon.uitp.e2e.commands.runModuleTests"
+            name="Запустить ВСЕ тесты модуля (СП_Тестирование)"
+            description="Запускает все тесты текущего BSL-модуля"
+            categoryId="ru.ozon.uitp.e2e.commands.category">
+      </command>
+      <command
+            id="ru.ozon.uitp.e2e.commands.openTestsView"
+            name="Открыть панель тестов Specter"
+            description="Открывает панель тестов Specter"
+            categoryId="ru.ozon.uitp.e2e.commands.category">
+      </command>
+      <command
+            id="ru.ozon.uitp.e2e.commands.convertVanessa"
+            name="Конвертировать тесты Vanessa в модули СП..."
+            description="Мастер конвертации Vanessa Automation в CommonModules"
+            categoryId="ru.ozon.uitp.e2e.commands.category">
+      </command>
+   </extension>
+
+   <!-- Обработчики команд -->
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+            class="ru.ozon.uitp.e2e.views.RunTestAtCursorHandler">
+      </handler>
+      <handler
+            commandId="ru.ozon.uitp.e2e.commands.runModuleTests"
+            class="ru.ozon.uitp.e2e.views.RunModuleTestsHandler">
+      </handler>
+      <handler
+            commandId="ru.ozon.uitp.e2e.commands.openTestsView"
+            class="ru.ozon.uitp.e2e.views.OpenTestsViewHandler">
+      </handler>
+   </extension>
+
+   <!-- Элементы меню и панелей инструментов (Eclipse Menus) -->
+   <extension
+         point="org.eclipse.ui.menus">
+      <!-- Главное верхнее меню: Specter -->
+      <menuContribution
+            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu
+               id="ru.ozon.uitp.e2e.mainMenu"
+               label="Specter"
+               icon="icons/specter-tests.png">
+            <command
+                  commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+                  label="▶ Запустить тест под курсором (СП)"
+                  icon="icons/specter-tests.png"
+                  style="push">
+            </command>
+            <command
+                  commandId="ru.ozon.uitp.e2e.commands.runModuleTests"
+                  label="▶ Запустить все тесты модуля (СП)"
+                  icon="icons/specter-tests.png"
+                  style="push">
+            </command>
+            <separator
+                  name="specterViews"
+                  visible="true">
+            </separator>
+            <command
+                  commandId="ru.ozon.uitp.e2e.commands.openTestsView"
+                  label="📊 Панель тестов Specter"
+                  icon="icons/specter-tests.png"
+                  style="push">
+            </command>
+         </menu>
+      </menuContribution>
+
+      <!-- Главный тулбар (Main Toolbar) -->
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar
+               id="ru.ozon.uitp.e2e.toolbar"
+               label="Specter UI Testing">
+            <command
+                  commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+                  tooltip="Запустить тест BSL под курсором (СП_Тестирование)"
+                  icon="icons/specter-tests.png"
+                  style="push">
+            </command>
+            <command
+                  commandId="ru.ozon.uitp.e2e.commands.runModuleTests"
+                  tooltip="Запустить ВСЕ тесты открытого модуля (СП_Тестирование)"
+                  icon="icons/specter-tests.png"
+                  style="push">
+            </command>
+         </toolbar>
+      </menuContribution>
+
+      <!-- Контекстное меню текстового редактора (Generic Text Editor Context) -->
+      <menuContribution
+            locationURI="popup:#AbstractTextEditorContext?after=additions">
+         <separator
+               name="specterBslGroup"
+               visible="true">
+         </separator>
+         <command
+               commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+               label="▶ Запустить тест (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               style="push">
+         </command>
+         <command
+               commandId="ru.ozon.uitp.e2e.commands.runModuleTests"
+               label="▶ Запустить все тесты модуля (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               style="push">
+         </command>
+      </menuContribution>
+
+      <!-- Контекстное меню редактора BSL 1C:EDT -->
+      <menuContribution
+            locationURI="popup:com._1c.g5.v8.dt.bsl.ui.BslEditor.EditorContext?after=additions">
+         <separator
+               name="specterBslGroupEdt"
+               visible="true">
+         </separator>
+         <command
+               commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+               label="▶ Запустить тест (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               style="push">
+         </command>
+         <command
+               commandId="ru.ozon.uitp.e2e.commands.runModuleTests"
+               label="▶ Запустить все тесты модуля (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               style="push">
+         </command>
+      </menuContribution>
+
+      <!-- Контекстное меню левой линейки редактора (Ruler Context) -->
+      <menuContribution
+            locationURI="popup:#RulerContext?after=additions">
+         <command
+               commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+               label="▶ Запустить тест (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               style="push">
+         </command>
+      </menuContribution>
+   </extension>
+
+   <!-- Контекстные меню legacy (для обратной совместимости со старыми версиями EDT) -->
    <extension
          point="org.eclipse.ui.popupMenus">
       <viewerContribution
-            id="ru.ozon.uitp.e2e.editor.popup"
-            targetID="#CompilationUnitEditorContext">
+            id="ru.ozon.uitp.e2e.editor.popup.all"
+            targetID="#AbstractTextEditorContext">
          <action
-               id="ru.ozon.uitp.e2e.actions.runTestAtCursor"
-               label="Запустить тест (СП_Тестирование)"
+               id="ru.ozon.uitp.e2e.actions.runTestAtCursorLegacy"
+               label="▶ Запустить тест (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.views.RunTestAtCursorAction"
+               menubarPath="additions">
+         </action>
+         <action
+               id="ru.ozon.uitp.e2e.actions.runModuleTestsLegacy"
+               label="▶ Запустить все тесты модуля (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.views.RunCurrentModuleTestsAction"
+               menubarPath="additions">
+         </action>
+      </viewerContribution>
+      <viewerContribution
+            id="ru.ozon.uitp.e2e.editor.bsl.popup.legacy"
+            targetID="com._1c.g5.v8.dt.bsl.ui.BslEditor.EditorContext">
+         <action
+               id="ru.ozon.uitp.e2e.actions.runTestAtCursorBsl"
+               label="▶ Запустить тест (СП_Тестирование)"
                icon="icons/specter-tests.png"
                class="ru.ozon.uitp.e2e.views.RunTestAtCursorAction"
                menubarPath="additions">
          </action>
       </viewerContribution>
       <viewerContribution
-            id="ru.ozon.uitp.e2e.editor.bsl.popup"
-            targetID="com._1c.g5.v8.dt.bsl.ui.BslEditor.EditorContext">
+            id="ru.ozon.uitp.e2e.editor.ruler.popup"
+            targetID="#RulerContext">
          <action
-               id="ru.ozon.uitp.e2e.actions.runTestAtCursorBsl"
-               label="Запустить тест (СП_Тестирование)"
+               id="ru.ozon.uitp.e2e.actions.runTestRuler"
+               label="▶ Запустить тест (СП_Тестирование)"
                icon="icons/specter-tests.png"
                class="ru.ozon.uitp.e2e.views.RunTestAtCursorAction"
                menubarPath="additions">
          </action>
       </viewerContribution>
    </extension>
-   <!-- Страница настроек плагина Specter (Путь к тестам Vanessa Automation) -->
-   <extension
-         point="org.eclipse.ui.preferencePages">
-      <page
-            id="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage"
-            name="Specter"
-            class="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage">
-      </page>
-   </extension>
 
-   <!-- Меню и действия конвертации тестов Vanessa Automation -->
+   <!-- Действия на панели инструментов Workbench (ActionSets) -->
    <extension
          point="org.eclipse.ui.actionSets">
       <actionSet
             id="ru.ozon.uitp.e2e.actionSet"
-            label="Specter Vanessa Actions"
+            label="Specter UI Testing Actions"
             visible="true">
+         <action
+               id="ru.ozon.uitp.e2e.actions.runCurrentTest"
+               label="▶ Запустить тест под курсором (СП)"
+               tooltip="Запустить тест BSL под курсором в живом клиенте 1С (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.views.RunTestAtCursorAction"
+               toolbarPath="Normal/additions"
+               menubarPath="window/additions">
+         </action>
+         <action
+               id="ru.ozon.uitp.e2e.actions.runAllModuleTests"
+               label="▶ Запустить все тесты модуля (СП)"
+               tooltip="Запустить все тесты текущего BSL-модуля (СП_Тестирование)"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.views.RunCurrentModuleTestsAction"
+               toolbarPath="Normal/additions"
+               menubarPath="window/additions">
+         </action>
          <action
                id="ru.ozon.uitp.e2e.converter.ConvertVanessaTestsAction"
                label="Конвертировать тесты Vanessa в модули СП..."
@@ -135,5 +333,32 @@
                toolbarPath="Normal/additions">
          </action>
       </actionSet>
+   </extension>
+
+   <!-- Горячие клавиши (Key Bindings) -->
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            sequence="M1+M3+T"
+            commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            contextId="org.eclipse.ui.contexts.window">
+      </key>
+      <key
+            sequence="M1+M3+M"
+            commandId="ru.ozon.uitp.e2e.commands.runModuleTests"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            contextId="org.eclipse.ui.contexts.window">
+      </key>
+   </extension>
+
+   <!-- Страница настроек плагина Specter -->
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            id="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage"
+            name="Specter"
+            class="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage">
+      </page>
    </extension>
 </plugin>
