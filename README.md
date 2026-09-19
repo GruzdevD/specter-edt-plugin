@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="bundles/ru.ozon.uitp.e2e/icons/specter-emblem.png" width="96" height="96" alt="Specter Logo" />
+  <img src="public/icons/specter-emblem.svg" width="120" height="120" alt="Specter Logo" />
 </p>
 
 <h1 align="center">Specter — EDT-плагин UI-тестирования 1С</h1>
