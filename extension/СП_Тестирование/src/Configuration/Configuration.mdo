@@ -6,7 +6,6 @@
     <value>Спектер: Движок UI-тестирования 1С</value>
   </synonym>
   <comment>Движок UI-тестирования и BSL-адаптер Specter. Префикс СП_. Модули тестов создаются разработчиками локально.</comment>
-  <version>0.3.4</version>
   <objectBelonging>Adopted</objectBelonging>
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
     <managedApplicationModule>Extended</managedApplicationModule>
@@ -21,9 +20,8 @@
   <namePrefix>СП_</namePrefix>
   <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
   <configurationExtensionPurpose>AddOn</configurationExtensionPurpose>
-  <defaultRunMode>ManagedApplication</defaultRunMode>
-  <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
+  <version>0.3.4</version>
   <usedMobileApplicationFunctionalities>
     <functionality>
       <use>true</use>
@@ -35,13 +33,11 @@
   </usedMobileApplicationFunctionalities>
   <dataLockControlMode>Managed</dataLockControlMode>
   <objectAutonumerationMode>NotAutoFree</objectAutonumerationMode>
-  <modalityUseMode>DontUse</modalityUseMode>
   <synchronousPlatformExtensionAndAddInCallUseMode>DontUse</synchronousPlatformExtensionAndAddInCallUseMode>
-  <compatibilityMode>8.3.21</compatibilityMode>
-  <commonModules>CommonModule.СП_СправочникИмен</commonModules>
+  <commonModules>CommonModule.СП_СправочникИменКлиент</commonModules>
   <commonModules>CommonModule.СП_Протокол</commonModules>
   <commonModules>CommonModule.СП_ТестовыеДанные</commonModules>
-  <commonModules>CommonModule.СП_Адаптер</commonModules>
+  <commonModules>CommonModule.СП_АдаптерКлиент</commonModules>
   <commonModules>CommonModule.СП_ТестовыйКлиент</commonModules>
   <commonModules>CommonModule.СП_ГенераторДанных</commonModules>
   <commonModules>CommonModule.СП_ДействияКлиент</commonModules>
