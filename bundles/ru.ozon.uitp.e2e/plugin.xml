@@ -10,12 +10,14 @@
             id="ru.ozon.uitp.e2e.views.TestsView"
             category="ru.ozon.uitp.e2e.views.category"
             name="Тесты"
+            class="ru.ozon.uitp.e2e.views.TestsView"
             restorable="true">
       </view>
       <view
             id="ru.ozon.uitp.e2e.views.ResultsView"
             category="ru.ozon.uitp.e2e.views.category"
             name="Результаты"
+            class="ru.ozon.uitp.e2e.views.ResultsView"
             restorable="true">
       </view>
    </extension>
