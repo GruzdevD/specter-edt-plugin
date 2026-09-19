@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия релиза (например 0.3.1)'
+        required: false
+        default: '0.3.1'
 
 permissions:
   contents: write
@@ -33,11 +39,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tycho-p2-
 
-      - name: Extract version from tag
+      - name: Extract version
         id: version
         run: |
-          # tag: v0.1.0 -> 0.1.0
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set version from tag
