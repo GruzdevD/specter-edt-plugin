@@ -119,7 +119,7 @@ public class ExtensionTestsView extends ViewPart {
 			gc.setAlpha(255);
 
 			// Красивый информационный текст под эмблемой
-			Display d = gc.getDevice();
+			Display d = (Display) gc.getDevice();
 			gc.setForeground(d.getSystemColor(SWT.COLOR_DARK_GRAY));
 			String title = "Specter: Тесты расширения СП_Тестирование";
 			int titleW = gc.stringExtent(title).x;

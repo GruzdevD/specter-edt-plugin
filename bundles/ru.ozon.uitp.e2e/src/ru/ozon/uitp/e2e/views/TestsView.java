@@ -235,7 +235,7 @@ public class TestsView extends ViewPart {
 			gc.drawImage(specterEmblemImage, x, y);
 			gc.setAlpha(255);
 
-			Display d = gc.getDevice();
+			Display d = (Display) gc.getDevice();
 			gc.setForeground(d.getSystemColor(SWT.COLOR_DARK_GRAY));
 			int tw = gc.stringExtent(title).x;
 			gc.drawString(title, (bounds.width - tw) / 2, y + imgH + 12, true);
