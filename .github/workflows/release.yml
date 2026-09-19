@@ -7,12 +7,18 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Версия релиза (например 0.3.1)'
+        description: 'Версия релиза (например 0.3.2)'
         required: false
-        default: '0.3.1'
+        default: '0.3.2'
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -89,7 +95,8 @@ jobs:
           name: UITP-EDT v${{ steps.version.outputs.version }}
           body: |
             **Specter** — EDT-плагин UI-тестирования 1С: панели «Тесты» / «Результаты»,
-            запуск тестов прямо из редактора кода BSL через маркеры на линейке (Gutter)
+            запуск тестов прямо из редактора кода BSL через маркеры на линейке (Gutter),
+            конвертер сценариев Vanessa Automation в нативные модули СП_Тестирование
             и BSL-мост на реальном UI 1С (без .epf, видео и скриншотов).
 
             Установка через UI EDT: **Help → Install New Software → Work with:**
@@ -100,3 +107,33 @@ jobs:
           files: |
             UITP-EDT.v*.zip
             UITP-EXTENSION.СП_Тестирование.v*.zip
+
+      - name: Prepare Update Site index.html
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO_DIR="repositories/ru.ozon.uitp.e2e.repository/target/repository"
+          cat > "$REPO_DIR/index.html" <<EOF
+          <!DOCTYPE html>
+          <html>
+          <head><title>UITP E2E EDT Plugin - Update Site</title></head>
+          <body>
+            <h1>UITP E2E EDT Plugin - Update Site</h1>
+            <p>Current version: <strong>${VERSION}</strong></p>
+            <p>Use this URL in EDT: <strong>Help &rarr; Install New Software...</strong></p>
+            <pre>https://gruzdevd.github.io/specter-edt-plugin/</pre>
+            <p><a href="https://github.com/GruzdevD/specter-edt-plugin">GitHub Repository</a></p>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: repositories/ru.ozon.uitp.e2e.repository/target/repository
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
