@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className={`px-1.5 py-0.5 font-mono rounded-md text-[10px] font-bold ${
                   activeTab === 'design' ? 'bg-indigo-700 text-white' : 'bg-indigo-100 text-indigo-800'
                 }`}>
-                  v0.3.0
+                  v0.3.1
                 </span>
               </button>
 
@@ -192,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-sm transition-all duration-150 border border-slate-800 shrink-0"
             >
               <Download className="w-3.5 h-3.5 text-slate-300" />
-              <span>Релиз v0.3.0</span>
+              <span>Релиз v0.3.1</span>
             </button>
           </div>
         </div>

@@ -6,7 +6,7 @@
     <value>Спектер: Движок UI-тестирования 1С</value>
   </synonym>
   <comment>Движок UI-тестирования и BSL-адаптер Specter. Префикс СП_. Модули тестов создаются разработчиками локально.</comment>
-  <version>0.2.0</version>
+  <version>0.3.1</version>
   <objectBelonging>Adopted</objectBelonging>
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
     <managedApplicationModule>Extended</managedApplicationModule>

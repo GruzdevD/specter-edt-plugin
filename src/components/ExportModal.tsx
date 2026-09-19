@@ -57,11 +57,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                 <Sparkles className="w-4 h-4" />
               </div>
               <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                Дистрибутивы релиза v0.3.0 & Исходники Specter
+                Дистрибутивы релиза v0.3.1 & Исходники Specter
               </h3>
             </div>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Единая версия плагина и расширения (<code className="font-mono text-indigo-600 font-bold">0.3.0</code>). Готовые архивы сборки и проверенные патчи.
+              Единая версия плагина и расширения (<code className="font-mono text-indigo-600 font-bold">0.3.1</code>). Готовые архивы сборки и проверенные патчи.
             </p>
           </div>
           <button
@@ -83,7 +83,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
             }`}
           >
             <Archive className="w-3.5 h-3.5" />
-            <span>Пакеты релиза v0.3.0 (ZIP)</span>
+            <span>Пакеты релиза v0.3.1 (ZIP)</span>
           </button>
           <button
             onClick={() => setActiveTab('files')}
@@ -112,14 +112,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-slate-900">
-                          UITP-EDT.v0.3.0.zip
+                          UITP-EDT.v0.3.1.zip
                         </span>
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
-                          EDT Plugin v0.3.0
+                          EDT Plugin v0.3.1
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Update-site и OSGi бандлы плагина (<code className="font-mono text-[11px]">ru.ozon.uitp.e2e</code>, feature, repository, targets). Включает конвертер Vanessa Automation, SpecterPreferencePage и Gutter-маркеры.
+                        Update-site и OSGi бандлы плагина (<code className="font-mono text-[11px]">ru.ozon.uitp.e2e</code>, feature, repository, targets). Включает конвертер Vanessa Automation с выбором проекта, SpecterPreferencePage и Gutter-маркеры.
                       </p>
                       <div className="flex items-center gap-3 mt-2.5 text-[11px] text-slate-400 font-mono">
                         <span>Размер: ~115 KB</span>
@@ -129,7 +129,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                     </div>
                   </div>
                   <a
-                    href="https://github.com/GruzdevD/specter-edt-plugin/releases/download/v0.3.0/UITP-EDT.v0.3.0.zip"
+                    href="https://github.com/GruzdevD/specter-edt-plugin/releases/download/v0.3.1/UITP-EDT.v0.3.1.zip"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-white text-xs font-bold shadow-xs transition-all shrink-0"
@@ -150,10 +150,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-slate-900">
-                          UITP-EXTENSION._.v0.3.0.zip
+                          UITP-EXTENSION._.v0.3.1.zip
                         </span>
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          1С Расширение v0.3.0
+                          1С Расширение v0.3.1
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed">
@@ -167,7 +167,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                     </div>
                   </div>
                   <a
-                    href="https://github.com/GruzdevD/specter-edt-plugin/releases/download/v0.3.0/UITP-EXTENSION._.v0.3.0.zip"
+                    href="https://github.com/GruzdevD/specter-edt-plugin/releases/download/v0.3.1/UITP-EXTENSION._.v0.3.1.zip"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white text-xs font-bold shadow-xs transition-all shrink-0"
@@ -182,7 +182,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
               <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100/80 text-xs text-slate-600 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span>
-                  <strong>Синхронизация версий:</strong> Версия плагина (<code className="font-mono font-semibold text-slate-800">pom.xml</code>, <code className="font-mono font-semibold text-slate-800">MANIFEST.MF</code>) строго равна версии расширения (<code className="font-mono font-semibold text-slate-800">Configuration.mdo</code>) = <strong className="text-indigo-700">0.3.0</strong>.
+                  <strong>Синхронизация версий:</strong> Версия плагина (<code className="font-mono font-semibold text-slate-800">pom.xml</code>, <code className="font-mono font-semibold text-slate-800">MANIFEST.MF</code>) строго равна версии расширения (<code className="font-mono font-semibold text-slate-800">Configuration.mdo</code>) = <strong className="text-indigo-700">0.3.1</strong>.
                 </span>
               </div>
             </div>
