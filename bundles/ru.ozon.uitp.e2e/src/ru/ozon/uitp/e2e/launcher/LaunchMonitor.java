@@ -117,6 +117,22 @@ public final class LaunchMonitor {
 
 	public static String readFileSafe(File f) {
 		if (f == null || !f.isFile()) return "";
+		for (int attempt = 0; attempt < 3; attempt++) {
+			try {
+				String content = Files.readString(f.toPath(), StandardCharsets.UTF_8);
+				if (!content.isEmpty()) {
+					return content;
+				}
+				Thread.sleep(30);
+			} catch (IOException | InterruptedException e) {
+				try {
+					Thread.sleep(30);
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		}
 		try {
 			return Files.readString(f.toPath(), StandardCharsets.UTF_8);
 		} catch (IOException e) {
