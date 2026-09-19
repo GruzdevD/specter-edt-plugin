@@ -106,78 +106,98 @@ tools/ci/                          Скрипт CLI-раннера (specter-cli.
 
 ---
 
-## 🤖 Интеграция с CI/CD (Headless-запуск)
+## 🤖 Интеграция с CI/CD и Параллельный запуск (Test Sharding)
 
-Фреймворк **Specter** поддерживает автоматизированный безинтерфейсный (headless) запуск UI-тестов 1С в CI/CD пайплайнах (GitLab CI, GitHub Actions, Jenkins и др.) через файловый мост обмена `outDir`.
+Фреймворк **Specter** поддерживает автоматизированный безинтерфейсный (headless) запуск UI-тестов 1С в CI/CD пайплайнах (GitLab CI, GitHub Actions, Jenkins и др.) как в одиночном, так и в **параллельном** режиме (Test Sharding) для максимального ускорения проверок.
 
-### 1. Перенос CLI-раннера `specter-cli.py` в свой проект
+### Архитектура и изоляция файлов (`specter-cli.py`)
 
-Скопируйте скрипт `tools/ci/specter-cli.py` из этого репозитория в каталог вашей 1С-конфигурации или проекта (например, `tools/ci/specter-cli.py`).
+Тонкий клиент 1С (`1cv8c`) является однопоточным приложением. Для параллельного выполнения наборов тестов утилита `tools/ci/specter-cli.py` использует пул потоков (`ThreadPoolExecutor`) и стандартный модуль Python `tempfile`.
 
-Скрипт написан на **чистом Python 3** (использует только стандартную библиотеку) и выполняет:
-- Генерирует уникальный `runId` (UUID).
-- Создает файл `bridge-commands.json` (атомарно).
-- Запускает процесс тонкого клиента 1С (`1cv8c`) с параметром `/C "SPECTER_START_BRIDGE|outDir=<путь>"`.
-- В цикле ожидает ответа `bridge-result-<runId>.json`.
-- Формирует итоговый отчет в стандарте **JUnit XML** (`junit-report.xml`).
+- **Изоляция ФС**: Каждый воркер создает собственную временную изолированную папку в системном каталоге ОС (`tempfile.TemporaryDirectory()`). Взаимодействие раннера с экземпляром 1С через `bridge-commands.json` и `bridge-result-<runId>.json` происходит внутри этой временной папки. В корне репозитория CI-раннера не создается никакого мусора — сохраняется только финальный агрегированный `junit-report.xml`.
+- **Атомарность**: Запись файлов команд выполняется атомарно, исключая гонку потоков и чтение неполных JSON-структур.
 
-Пример ручного запуска локально или на раннере:
+---
+
+### ⚠️ ВАЖНО: Предотвращение коллизий данных при параллельном запуске (`--workers > 1`)
+
+При параллельном запуске нескольких экземпляров тонкого клиента 1С к одной информационной базе возникает риск **транзакционных блокировок (`Lock wait timeout`)** и конфликтов уникальности (например, попытка двух воркеров одновременно создать справочник "ООО Ромашка" с одинаковым ИНН или провести документ по одним и тем же остаткам).
+
+**Правила написания тестов для параллельного режима:**
+1. **Уникальные префиксы данных**: Генераторы тестовых данных (например, общий модуль `СП_ГенераторДанных`) обязаны использовать уникальный суффикс на основе потока, времени или случайного GUID для всех создаваемых объектов (например, `"ООО Ромашка " + Новый УникальныйИдентификатор()` или `СтрШаблон("Клиент %1", _ГлобальныйПрефиксВоркера)`).
+2. **Изоляция сущностей**: Тестовые сценарии не должны зависеть от жестко зашитых константных наименований справочников, если они изменяются в ходе теста.
+
+---
+
+### 1. Использование параллельного CLI-раннера
+
+Пример запуска локально или на CI/CD раннере с 4 параллельными воркерами:
+
 ```bash
 python3 tools/ci/specter-cli.py \
-  --out-dir "./specter-exchange" \
+  --workers 4 \
   --client-path "C:\Program Files\1cv8\8.3.25.1234\bin\1cv8c.exe" \
   --ib-conn "File=\"C:\1C\Bases\DemoDB\"" \
   --user "Administrator" \
-  --timeout 300 \
-  --module "СП_Тесты_Контрагенты" \
+  --timeout 600 \
   --report-path "junit-report.xml"
 ```
 
-### 2. Настройка GitLab CI пайплайна
+Аргументы командной строки `specter-cli.py`:
+- `--workers <N>` — количество параллельных процессов (по умолчанию `1`).
+- `--test-list <path>` — путь к JSON-файлу со списком тестовых модулей для распределения по воркерам.
+- `--client-path <path>` — путь к исполняемому файлу тонкого клиента 1С (`1cv8c` / `1cv8.exe`).
+- `--ib-conn <str>` — строка подключения к информационной базе 1С (`File="..."` или `Srvr="..."`).
+- `--timeout <sec>` — таймаут ожидания выполнения тестов воркером (по умолчанию `300s`).
+- `--report-path <path>` — путь для сохранения итогового сводного отчета JUnit XML.
 
-В репозитории подготовлен готовый шаблон [tools/ci/gitlab-ci-template.yml](tools/ci/gitlab-ci-template.yml).
+---
 
-Скопируйте его содержимое в файл `.gitlab-ci.yml` вашего проекта 1С:
+### 2. Шаблон GitLab CI Пайплайна (`tools/ci/gitlab-ci-template.yml`)
+
+В репозитории подготовлен эталонный шаблон [tools/ci/gitlab-ci-template.yml](tools/ci/gitlab-ci-template.yml). Скопируйте его содержимое или подключите в ваш `.gitlab-ci.yml`:
 
 ```yaml
 stages:
   - test
 
-variables:
-  SPECTER_OUT_DIR: "${CI_PROJECT_DIR}/specter-exchange"
-  SPECTER_CLIENT_PATH: "1cv8c"
-  SPECTER_IB_CONN: "File=\"/var/1c/bases/test_db\""
-  SPECTER_USER: "Administrator"
-  SPECTER_PASSWORD: ""
-  SPECTER_TIMEOUT: "300"
-
 e2e-tests-1c:
   stage: test
+  image: python:3.11-slim
   tags:
-    - 1c-runner  # Тэг вашего GitLab Runner с утилитами 1С
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-  before_script:
-    - mkdir -p "${SPECTER_OUT_DIR}"
+    - 1c-windows-runner  # Тэг вашего раннера с установленным тонким клиентом 1С
+  variables:
+    SPECTER_CLIENT_PATH: "1cv8c"
+    SPECTER_IB_CONN: "File=\"/var/lib/1c/infobases/test_ib\""
+    WORKERS_COUNT: "4"
   script:
-    - python3 tools/ci/specter-cli.py --out-dir "${SPECTER_OUT_DIR}" --client-path "${SPECTER_CLIENT_PATH}" --ib-conn "${SPECTER_IB_CONN}" --user "${SPECTER_USER}" --password "${SPECTER_PASSWORD}" --timeout "${SPECTER_TIMEOUT}" ${SPECTER_MODULE:+--module "${SPECTER_MODULE}"} --report-path "junit-report.xml"
+    - echo "Running 1C:Specter Parallel Headless Tests..."
+    - python3 tools/ci/specter-cli.py \
+        --workers $WORKERS_COUNT \
+        --client-path "$SPECTER_CLIENT_PATH" \
+        --ib-conn "$SPECTER_IB_CONN" \
+        --timeout 600 \
+        --report-path junit-report.xml
   artifacts:
+    name: "specter-parallel-reports"
     when: always
-    paths:
-      - junit-report.xml
-      - "${SPECTER_OUT_DIR}/"
+    expire_in: 30 days
     reports:
       junit: junit-report.xml
-    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
 ```
 
-### 3. Отображение результатов в Merge Request (GitLab)
+---
 
-Благодаря парсингу результатов в формат **JUnit XML** (`reports: junit: junit-report.xml`):
-- В каждом **Merge Request** появляется встроенный виджет **Unit Tests**.
-- Инженер и ревьюер сразу видят сводку: количество пропущенных/успешных тестов (зеленый статус) и список упавших шагов (красный статус) с точным описанием ассерта или BSL-ошибки.
-- Вкладка **Pipelines -> Tests** содержит детализированный стек вызовов для каждого тестового сценария.
+### 3. Интеграция с Merge Request (GitLab UI)
+
+Благодаря формированию стандартизированного **JUnit XML** (`reports: junit: junit-report.xml`):
+- GitLab автоматически отображает интерактивный виджет **Unit Tests** прямо в интерфейсе **Merge Request**.
+- Ревьюеры видят зеленые (пройденные), синие (пропущенные) и красные (упавшие) тесты без необходимости скачивать полные архивы логов.
+- Детализированная трассировка шагов доступна во вкладке **Pipelines → Tests**.
 
 ---
 
