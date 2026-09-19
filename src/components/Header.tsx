@@ -32,9 +32,13 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logo and branding */}
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="relative group shrink-0">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 via-rose-500 to-indigo-600 p-0.5 shadow-md shadow-rose-500/10 group-hover:scale-105 transition-transform duration-200">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400 font-extrabold text-lg tracking-tight shadow-inner">
-                  1С
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 p-0.5 shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-200 flex items-center justify-center">
+                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center p-1.5 shadow-inner">
+                  <img 
+                    src="/icons/specter-emblem.svg" 
+                    alt="Specter Emblem" 
+                    className="w-full h-full object-contain filter drop-shadow-xs" 
+                  />
                 </div>
               </div>
               <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
@@ -46,9 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>Specter</span>
+                  <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Specter</span>
                   <span className="text-slate-400 font-normal">/</span>
-                  <span className="text-indigo-600 font-semibold text-sm sm:text-base">UIxUnit 1C:EDT</span>
+                  <span className="text-slate-700 font-semibold text-sm sm:text-base">1C:EDT E2E Suite</span>
                 </h1>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
                   <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />

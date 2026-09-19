@@ -25,5 +25,7 @@ Require-Bundle: org.eclipse.core.runtime,
  com._1c.g5.v8.dt.metadata,
  com._1c.g5.v8.dt.bsl.model
 Export-Package: ru.ozon.uitp.e2e,
+ ru.ozon.uitp.e2e.converter,
  ru.ozon.uitp.e2e.launcher,
+ ru.ozon.uitp.e2e.preferences,
  ru.ozon.uitp.e2e.views

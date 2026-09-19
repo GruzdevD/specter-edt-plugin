@@ -9,15 +9,23 @@
       <view
             id="ru.ozon.uitp.e2e.views.TestsView"
             category="ru.ozon.uitp.e2e.views.category"
-            name="Тесты"
+            name="Specter: Тесты и Результаты"
             icon="icons/specter-tests.png"
             class="ru.ozon.uitp.e2e.views.TestsView"
             restorable="true">
       </view>
       <view
+            id="ru.ozon.uitp.e2e.views.ExtensionTestsView"
+            category="ru.ozon.uitp.e2e.views.category"
+            name="Тесты расширения (СП)"
+            icon="icons/specter-tests.png"
+            class="ru.ozon.uitp.e2e.views.ExtensionTestsView"
+            restorable="true">
+      </view>
+      <view
             id="ru.ozon.uitp.e2e.views.ResultsView"
             category="ru.ozon.uitp.e2e.views.category"
-            name="Результаты"
+            name="Результаты (лог)"
             icon="icons/specter-results.png"
             class="ru.ozon.uitp.e2e.views.ResultsView"
             restorable="true">
@@ -99,5 +107,33 @@
                menubarPath="additions">
          </action>
       </viewerContribution>
+   </extension>
+   <!-- Страница настроек плагина Specter (Путь к тестам Vanessa Automation) -->
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            id="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage"
+            name="Specter"
+            class="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage">
+      </page>
+   </extension>
+
+   <!-- Меню и действия конвертации тестов Vanessa Automation -->
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            id="ru.ozon.uitp.e2e.actionSet"
+            label="Specter Vanessa Actions"
+            visible="true">
+         <action
+               id="ru.ozon.uitp.e2e.converter.ConvertVanessaTestsAction"
+               label="Конвертировать тесты Vanessa в модули СП..."
+               tooltip="Распознавание тестов Vanessa Automation и конвертация в CommonModules расширения СП_Тестирование"
+               icon="icons/specter-tests.png"
+               class="ru.ozon.uitp.e2e.converter.ConvertVanessaTestsAction"
+               menubarPath="window/additions"
+               toolbarPath="Normal/additions">
+         </action>
+      </actionSet>
    </extension>
 </plugin>

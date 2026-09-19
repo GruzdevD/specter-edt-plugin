@@ -33,6 +33,17 @@ public final class Activator extends AbstractUIPlugin {
 		return plugin;
 	}
 
+	/**
+	 * Возвращает сохраненный в IPreferenceStore путь к тестам Vanessa Automation.
+	 */
+	public static String getVanessaTestsPath() {
+		if (plugin != null && plugin.getPreferenceStore() != null) {
+			return plugin.getPreferenceStore().getString(
+					ru.ozon.uitp.e2e.preferences.SpecterPreferencePage.P_VANESSA_TESTS_PATH);
+		}
+		return "";
+	}
+
 	public static void logInfo(String message) {
 		if (plugin != null) {
 			plugin.getLog().log(new Status(IStatus.INFO, BUNDLE_ID, message));

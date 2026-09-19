@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="specterGrad" x1="20" y1="15" x2="100" y2="105" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="ghostGlow" x1="30" y1="20" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#c7d2fe" stop-opacity="0.4" />
+    </linearGradient>
+    <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Aura / Shield Hexagon -->
+  <polygon points="60,8 104,30 104,82 60,112 16,82 16,30" 
+           fill="#0f172a" 
+           stroke="url(#specterGrad)" 
+           stroke-width="3" 
+           stroke-linejoin="round" />
+
+  <!-- Ghost Silhouette (Specter) -->
+  <path d="M40 50 C40 34, 80 34, 80 50 C80 62, 82 74, 82 82 C82 85, 78 84, 75 80 C72 76, 68 76, 65 80 C62 84, 58 84, 55 80 C52 76, 48 76, 45 80 C42 84, 38 85, 38 82 C38 74, 40 62, 40 50 Z" 
+        fill="url(#ghostGlow)" 
+        filter="url(#glowFilter)" />
+
+  <!-- Eyes of the Specter -->
+  <circle cx="51" cy="48" r="3.5" fill="#0f172a" />
+  <circle cx="69" cy="48" r="3.5" fill="#0f172a" />
+  <circle cx="52" cy="47" r="1" fill="#38bdf8" />
+  <circle cx="70" cy="47" r="1" fill="#38bdf8" />
+
+  <!-- Lightning Bolt Bridge (1C Bridge Connection) -->
+  <polygon points="61,54 52,69 59,69 57,84 70,66 62,66" 
+           fill="#f59e0b" 
+           stroke="#ffffff" 
+           stroke-width="1.2" 
+           stroke-linejoin="round" />
+
+  <!-- Core Circuit Traces -->
+  <path d="M26 40 L34 40 L38 45" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6"/>
+  <path d="M94 40 L86 40 L82 45" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6"/>
+  <path d="M60 14 L60 22" stroke="#6366f1" stroke-width="2" stroke-linecap="round" />
+  <path d="M60 98 L60 106" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" />
+</svg>

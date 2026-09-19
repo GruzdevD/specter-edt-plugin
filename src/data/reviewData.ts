@@ -1693,6 +1693,14 @@ public final class Activator extends AbstractUIPlugin {
 		return plugin;
 	}
 
+	public static String getVanessaTestsPath() {
+		if (plugin != null && plugin.getPreferenceStore() != null) {
+			return plugin.getPreferenceStore().getString(
+					ru.ozon.uitp.e2e.preferences.SpecterPreferencePage.P_VANESSA_TESTS_PATH);
+		}
+		return "";
+	}
+
 	public static void logInfo(String message) {
 		if (plugin != null) {
 			plugin.getLog().log(new Status(IStatus.INFO, BUNDLE_ID, message));
@@ -1705,5 +1713,86 @@ public final class Activator extends AbstractUIPlugin {
 		}
 	}
 }`
+  },
+  {
+    path: 'bundles/ru.ozon.uitp.e2e/src/ru/ozon/uitp/e2e/preferences/SpecterPreferencePage.java',
+    title: 'SpecterPreferencePage.java',
+    description: 'Страница настроек плагина 1C:EDT (org.eclipse.ui.preferencePages)',
+    status: 'modified',
+    issuesCount: 0,
+    diffSummary: 'Создана страница настроек SpecterPreferencePage, наследующая FieldEditorPreferencePage, с полем DirectoryFieldEditor «Путь к тестам Vanessa Automation» и сохранением в IPreferenceStore.',
+    originalCode: `// Страница настроек отсутствовала в плагине`,
+    fixedCode: `package ru.ozon.uitp.e2e.preferences;
+
+import org.eclipse.jface.preference.DirectoryFieldEditor;
+import org.eclipse.jface.preference.FieldEditorPreferencePage;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPreferencePage;
+import ru.ozon.uitp.e2e.Activator;
+
+/**
+ * Страница настроек плагина Specter для 1C:EDT.
+ * Наследует FieldEditorPreferencePage и реализует IWorkbenchPreferencePage.
+ * Настраивает путь к тестам Vanessa Automation с сохранением в IPreferenceStore плагина.
+ */
+public class SpecterPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
+
+	public static final String ID = "ru.ozon.uitp.e2e.preferences.SpecterPreferencePage";
+
+	/** Ключ настройки для каталога тестов Vanessa Automation в IPreferenceStore */
+	public static final String P_VANESSA_TESTS_PATH = "vanessaTestsPath";
+
+	public SpecterPreferencePage() {
+		super(GRID);
+		// Привязываем страницу к IPreferenceStore нашего плагина:
+		if (Activator.getDefault() != null) {
+			setPreferenceStore(Activator.getDefault().getPreferenceStore());
+		}
+		setDescription("Параметры интеграции Specter и запуска тестовых сценариев Vanessa Automation в 1C:EDT");
+	}
+
+	@Override
+	public void init(IWorkbench workbench) {
+		// Гарантируем привязку IPreferenceStore при открытии диалога Preferences в воркбенче
+		if (getPreferenceStore() == null && Activator.getDefault() != null) {
+			setPreferenceStore(Activator.getDefault().getPreferenceStore());
+		}
+	}
+
+	@Override
+	protected void createFieldEditors() {
+		// Поле выбора каталога "Путь к тестам Vanessa Automation"
+		DirectoryFieldEditor vanessaPathEditor = new DirectoryFieldEditor(
+				P_VANESSA_TESTS_PATH,
+				"Путь к тестам Vanessa Automation:",
+				getFieldEditorParent()
+		);
+		addField(vanessaPathEditor);
+	}
+}`
+  },
+  {
+    path: 'bundles/ru.ozon.uitp.e2e/plugin.xml',
+    title: 'plugin.xml',
+    description: 'Манифест расширений Eclipse плагина (Views, Markers, Preference Pages)',
+    status: 'modified',
+    issuesCount: 0,
+    diffSummary: 'Зарегистрирована точка расширения org.eclipse.ui.preferencePages с классом ru.ozon.uitp.e2e.preferences.SpecterPreferencePage.',
+    originalCode: `<!-- Без точки расширения preferencePages -->`,
+    fixedCode: `<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <!-- Представления Views (TestsView, ExtensionTestsView, ResultsView) -->
+   ...
+   <!-- Страница настроек плагина Specter (Путь к тестам Vanessa Automation) -->
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            id="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage"
+            name="Specter"
+            class="ru.ozon.uitp.e2e.preferences.SpecterPreferencePage">
+      </page>
+   </extension>
+</plugin>`
   }
 ];

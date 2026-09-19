@@ -24,9 +24,14 @@ import {
   Activity,
   Maximize2,
   Download,
-  FileCode
+  FileCode,
+  Settings
 } from 'lucide-react';
 import { BslEditorSimulator } from './BslEditorSimulator';
+import { UnifiedSpecterConsole } from './UnifiedSpecterConsole';
+import { ExtensionTestsPanel } from './ExtensionTestsPanel';
+import { PreferencePageSimulator } from './PreferencePageSimulator';
+import { VanessaConverterPanel } from './VanessaConverterPanel';
 
 interface TestCase {
   id: string;
@@ -87,7 +92,7 @@ const SAMPLE_TESTS: TestCase[] = [
 export const DesignShowcase: React.FC = () => {
   const [designVersion, setDesignVersion] = useState<'improved' | 'legacy'>('improved');
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
-  const [workbenchTab, setWorkbenchTab] = useState<'views' | 'bsl-editor'>('bsl-editor');
+  const [workbenchTab, setWorkbenchTab] = useState<'unified-console' | 'extension-tests' | 'vanessa-converter' | 'bsl-editor' | 'preferences' | 'legacy-views'>('unified-console');
   const [selectedTestId, setSelectedTestId] = useState<string>('test-1');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'passed' | 'failed'>('all');
@@ -256,10 +261,55 @@ export const DesignShowcase: React.FC = () => {
         </div>
 
         {/* Workbench Perspective Sub-Nav Tabs */}
-        <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-semibold ${
+        <div className={`px-4 py-2 border-b flex flex-wrap items-center justify-between gap-2 text-xs font-semibold ${
           theme === 'dark' ? 'bg-[#2a2d2e] border-[#3c3c3c]' : 'bg-[#eef1f5] border-[#ced4da]'
         }`}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setWorkbenchTab('unified-console')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold ${
+                workbenchTab === 'unified-console'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layout className="w-3.5 h-3.5" />
+              <span>Объединённая консоль (Тесты + Результаты)</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-indigo-500/30 text-white border border-indigo-400/40 font-mono">
+                All-in-One
+              </span>
+            </button>
+
+            <button
+              onClick={() => setWorkbenchTab('extension-tests')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold ${
+                workbenchTab === 'extension-tests'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Тесты расширения (СП_Тестирование)</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/30 text-white border border-amber-400/40">
+                Новая панель
+              </span>
+            </button>
+
+            <button
+              onClick={() => setWorkbenchTab('vanessa-converter')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold ${
+                workbenchTab === 'vanessa-converter'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Конвертер Vanessa → СП</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-500/30 text-white border border-purple-400/40">
+                Авто-модули
+              </span>
+            </button>
+
             <button
               onClick={() => setWorkbenchTab('bsl-editor')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold ${
@@ -269,35 +319,86 @@ export const DesignShowcase: React.FC = () => {
               }`}
             >
               <FileCode className="w-3.5 h-3.5" />
-              <span>BSL Редактор (Gutter Маркеры & Запуск)</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/30 text-white border border-emerald-400/40">
-                YAxUnit Style
-              </span>
+              <span>BSL Редактор (Gutter Маркеры)</span>
             </button>
+
             <button
-              onClick={() => setWorkbenchTab('views')}
+              onClick={() => setWorkbenchTab('preferences')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold ${
-                workbenchTab === 'views'
+                workbenchTab === 'preferences'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Layout className="w-3.5 h-3.5" />
-              <span>Панели Views (Тесты & Результаты)</span>
+              <Settings className="w-3.5 h-3.5" />
+              <span>Настройки Specter</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-indigo-500/30 text-white border border-indigo-400/40">
+                Preferences
+              </span>
+            </button>
+
+            <button
+              onClick={() => setWorkbenchTab('legacy-views')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold ${
+                workbenchTab === 'legacy-views'
+                  ? 'bg-slate-700 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Раздельные панели</span>
             </button>
           </div>
 
-          <div className="text-[11px] font-mono text-slate-500 hidden sm:block">
-            {workbenchTab === 'bsl-editor' ? 'Поиск &Тест и префиксов Тест_* на полях BSL' : 'Дерево наборов модулей СП_Тесты_*'}
+          <div className="text-[11px] font-mono text-slate-500 hidden lg:block">
+            {workbenchTab === 'unified-console' && 'Единая панель EDT с фоновым логотипом Specter'}
+            {workbenchTab === 'extension-tests' && 'Обнаружение всех модулей расширения и их запуск'}
+            {workbenchTab === 'vanessa-converter' && 'Распознавание тестов Vanessa и генерация общих модулей 1С'}
+            {workbenchTab === 'bsl-editor' && 'Поиск &Тест и префиксов Тест_* на полях BSL'}
+            {workbenchTab === 'preferences' && 'Страница настроек SpecterPreferencePage в org.eclipse.ui.preferencePages'}
+            {workbenchTab === 'legacy-views' && 'Старый раздельный вид TestsView & ResultsView'}
           </div>
         </div>
 
         {/* Workbench View Content */}
-        {workbenchTab === 'bsl-editor' ? (
+        {workbenchTab === 'unified-console' && (
+          <div className="p-3 sm:p-4">
+            <UnifiedSpecterConsole theme={theme} designVersion={designVersion} />
+          </div>
+        )}
+
+        {workbenchTab === 'extension-tests' && (
+          <div className="p-3 sm:p-4">
+            <ExtensionTestsPanel theme={theme} />
+          </div>
+        )}
+
+        {workbenchTab === 'vanessa-converter' && (
+          <div className="p-3 sm:p-4">
+            <VanessaConverterPanel 
+              theme={theme} 
+              onNavigateToRunner={(mod) => setWorkbenchTab('extension-tests')}
+              onNavigateToSettings={() => setWorkbenchTab('preferences')}
+            />
+          </div>
+        )}
+
+        {workbenchTab === 'bsl-editor' && (
           <div className="p-3 sm:p-4">
             <BslEditorSimulator theme={theme} />
           </div>
-        ) : (
+        )}
+
+        {workbenchTab === 'preferences' && (
+          <div className="p-3 sm:p-4">
+            <PreferencePageSimulator 
+              theme={theme} 
+              onOpenConverter={() => setWorkbenchTab('vanessa-converter')}
+            />
+          </div>
+        )}
+
+        {workbenchTab === 'legacy-views' && (
         <div className="p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
           
           {/* LEFT: TestsView (Панель «Тесты») */}
@@ -342,7 +443,7 @@ export const DesignShowcase: React.FC = () => {
                   // Базовый текстовый вывод дерева без структурирования:
                 </div>
                 <div className="text-blue-600 dark:text-blue-400 font-bold">
-                  Набор: СП_ТестыКлиентскихСценариев (тестов: 3; запуск через мост СП_Тестирование)
+                  Набор: СП_ТестыКлиентскихСценариев (тестов: 3; запуск через Тонкий клиент 1С)
                 </div>
                 <div className="pl-4 space-y-1 text-slate-700 dark:text-slate-300">
                   <div 
@@ -367,7 +468,7 @@ export const DesignShowcase: React.FC = () => {
 
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
                   <div className="text-emerald-600 dark:text-emerald-400 font-bold">
-                    Прогон моста: passed (passed=3, failed=0)
+                    Прогон тестов: passed (passed=3, failed=0)
                   </div>
                   <div className="text-slate-500 text-[11px] mt-1">
                     (Нет индикаторов времени, нет фильтра, нет прогресс-бара, текст монотонный)
@@ -555,7 +656,7 @@ export const DesignShowcase: React.FC = () => {
                 <div className="text-slate-500 text-[10px]">
                   # Старый сырой монохромный терминальный вывод:
                 </div>
-                <div>Прогон моста: run_984a1f</div>
+                <div>Прогон сценария: run_984a1f</div>
                 <div>Статус: passed (passed=5, failed=0)</div>
                 <div>Файл: /exchange/bridge-result-run_984a1f.json</div>
                 <div className="text-slate-400">--------------------------------------------------</div>
@@ -964,7 +1065,7 @@ bin.includes = META-INF/,.,plugin.xml,icons/`}
             Плавные асинхронные индикаторы (Без зависаний)
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            <strong>До:</strong> Интерфейс 1C:EDT «замирал» и не реагировал на клики во время работы моста.<br />
+            <strong>До:</strong> Интерфейс 1C:EDT «замирал» и не реагировал на клики во время выполнения сценария в 1С.<br />
             <strong>После:</strong> Перенос всей долгой работы в фоновый Eclipse Job с асинхронным обновлением через <code className="font-mono text-slate-800">Display.asyncExec()</code>.
           </p>
         </div>

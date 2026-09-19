@@ -120,9 +120,10 @@ export default function App() {
       <footer className="border-t border-slate-200/80 bg-white py-5 mt-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div className="flex items-center gap-2.5">
-            <span className="font-bold text-slate-800">Specter UIxUnit for 1C:EDT</span>
+            <img src="/icons/specter-emblem.svg" alt="Specter" className="w-4 h-4 object-contain" />
+            <span className="font-bold text-slate-800">Specter for 1C:EDT</span>
             <span className="text-slate-300">•</span>
-            <span>Eclipse RCP / OSGi Plugin Architecture</span>
+            <span>Eclipse RCP / OSGi Plugin Suite</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px] text-slate-400">Tycho 5.0.4 • JDK 17 • Eclipse 4.30+</span>
