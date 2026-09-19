@@ -590,12 +590,16 @@ public class TestsView extends ViewPart {
 			if (element instanceof RootResultNode) {
 				RootResultNode n = (RootResultNode) element;
 				BridgeResult r = n.result;
-				String status = r.isFailed() ? "FAILED" : "PASSED";
-				return "📊 Прогон " + r.runId + " [" + status + "] (" + r.passedCount() + " ✓ / " + r.failedCount() + " ✗)";
+				boolean failed = r.isFailed();
+				boolean skipped = r.skippedCount() > 0 && !failed;
+				String status = failed ? "FAILED" : (skipped ? "SKIPPED" : "PASSED");
+				return "📊 Прогон " + r.runId + " [" + status + "] (" + r.passedCount() + " ✓ / " + r.failedCount() + " ✗" + (r.skippedCount() > 0 ? " / " + r.skippedCount() + " ⏸" : "") + ")";
 			}
 			if (element instanceof StepNode) {
 				StepNode n = (StepNode) element;
-				return "#" + n.step.id + " " + n.step.action + " — " + n.step.status.toUpperCase();
+				BridgeResult.Step s = n.step;
+				String stat = s.isFailed() ? "FAILED" : (s.isSkipped() ? "SKIPPED" : "PASSED");
+				return "#" + s.id + " " + s.action + " — " + stat;
 			}
 			return String.valueOf(element);
 		}
@@ -613,12 +617,16 @@ public class TestsView extends ViewPart {
 				return d.getSystemColor(SWT.COLOR_DARK_BLUE);
 			}
 			if (element instanceof RootResultNode) {
-				return ((RootResultNode) element).result.isFailed()
-						? d.getSystemColor(SWT.COLOR_RED) : d.getSystemColor(SWT.COLOR_DARK_GREEN);
+				RootResultNode n = (RootResultNode) element;
+				if (n.result.isFailed()) return d.getSystemColor(SWT.COLOR_RED);
+				if (n.result.skippedCount() > 0) return d.getSystemColor(SWT.COLOR_DARK_GRAY);
+				return d.getSystemColor(SWT.COLOR_DARK_GREEN);
 			}
 			if (element instanceof StepNode) {
-				return ((StepNode) element).step.isFailed()
-						? d.getSystemColor(SWT.COLOR_RED) : d.getSystemColor(SWT.COLOR_DARK_GREEN);
+				StepNode n = (StepNode) element;
+				if (n.step.isFailed()) return d.getSystemColor(SWT.COLOR_RED);
+				if (n.step.isSkipped()) return d.getSystemColor(SWT.COLOR_DARK_GRAY);
+				return d.getSystemColor(SWT.COLOR_DARK_GREEN);
 			}
 			return null;
 		}

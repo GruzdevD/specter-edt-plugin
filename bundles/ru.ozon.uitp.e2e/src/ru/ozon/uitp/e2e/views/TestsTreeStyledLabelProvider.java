@@ -115,19 +115,23 @@ public class TestsTreeStyledLabelProvider extends StyledCellLabelProvider {
 			RootResultNode n = (RootResultNode) element;
 			BridgeResult r = n.result;
 			boolean failed = r.isFailed();
+			boolean skipped = r.skippedCount() > 0 && !failed;
 
 			styled.append("📊  ", StyledString.QUALIFIER_STYLER);
 			styled.append("Прогон " + r.runId + "  ", StyledString.QUALIFIER_STYLER);
 
-			styled.append(failed ? " FAILED " : " PASSED ", new Styler() {
+			String statusText = failed ? " FAILED " : (skipped ? " SKIPPED " : " PASSED ");
+			Color statusFg = failed ? colorFailFg : (skipped ? colorDimText : colorPassFg);
+
+			styled.append(statusText, new Styler() {
 				@Override
 				public void applyStyles(org.eclipse.swt.graphics.TextStyle ts) {
-					ts.foreground = failed ? colorFailFg : colorPassFg;
+					ts.foreground = statusFg;
 					ts.font = getBoldFont();
 				}
 			});
 
-			styled.append("   " + r.passedCount() + " ✓ / " + r.failedCount() + " ✗", StyledString.COUNTER_STYLER);
+			styled.append("   " + r.passedCount() + " ✓ / " + r.failedCount() + " ✗" + (r.skippedCount() > 0 ? " / " + r.skippedCount() + " ⏸" : ""), StyledString.COUNTER_STYLER);
 			cell.setText(styled.getString());
 			cell.setStyleRanges(styled.getStyleRanges());
 			super.update(cell);
@@ -138,6 +142,7 @@ public class TestsTreeStyledLabelProvider extends StyledCellLabelProvider {
 			StepNode n = (StepNode) element;
 			BridgeResult.Step s = n.step;
 			boolean failed = s.isFailed();
+			boolean skipped = s.isSkipped();
 
 			styled.append(String.format("#%-2d ", s.id), StyledString.QUALIFIER_STYLER);
 			styled.append(s.action + "  ", new Styler() {
@@ -147,10 +152,13 @@ public class TestsTreeStyledLabelProvider extends StyledCellLabelProvider {
 				}
 			});
 
-			styled.append(failed ? "[✗ FAILED]" : "[✓ PASSED]", new Styler() {
+			String badge = failed ? "[✗ FAILED]" : (skipped ? "[⏸ SKIPPED]" : "[✓ PASSED]");
+			Color badgeFg = failed ? colorFailFg : (skipped ? colorDimText : colorPassFg);
+
+			styled.append(badge, new Styler() {
 				@Override
 				public void applyStyles(org.eclipse.swt.graphics.TextStyle ts) {
-					ts.foreground = failed ? colorFailFg : colorPassFg;
+					ts.foreground = badgeFg;
 					ts.font = getBoldFont();
 				}
 			});

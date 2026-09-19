@@ -60,7 +60,11 @@ public class ResultsView extends ViewPart {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Прогон моста: ").append(r.runId).append('\n');
 		sb.append("Статус: ").append(statusText(r.status));
-		sb.append("   (passed ").append(r.passedCount()).append(" / failed ").append(r.failedCount()).append(')');
+		sb.append("   (passed ").append(r.passedCount()).append(" / failed ").append(r.failedCount());
+		if (r.skippedCount() > 0) {
+			sb.append(" / skipped ").append(r.skippedCount());
+		}
+		sb.append(')');
 		if (r.source != null) {
 			sb.append("\nФайл: ").append(r.source.getAbsolutePath());
 		}
@@ -79,6 +83,7 @@ public class ResultsView extends ViewPart {
 
 		Color green = text.getDisplay().getSystemColor(SWT.COLOR_DARK_GREEN);
 		Color red = text.getDisplay().getSystemColor(SWT.COLOR_RED);
+		Color gray = text.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY);
 
 		String[] lines = fullText.split("\n", -1);
 		List<StyleRange> ranges = new ArrayList<>();
@@ -86,18 +91,26 @@ public class ResultsView extends ViewPart {
 
 		for (String line : lines) {
 			int statusIdx = line.indexOf("FAILED");
-			boolean failed = true;
+			Color col = red;
 			int len = 6;
 			if (statusIdx < 0) {
 				statusIdx = line.indexOf("PASSED");
-				failed = false;
-				len = 6;
+				if (statusIdx >= 0) {
+					col = green;
+					len = 6;
+				} else {
+					statusIdx = line.indexOf("SKIPPED");
+					if (statusIdx >= 0) {
+						col = gray;
+						len = 7;
+					}
+				}
 			}
 			if (statusIdx >= 0) {
 				StyleRange sr = new StyleRange();
 				sr.start = lineStart + statusIdx; // Точное смещение слова статуса
 				sr.length = len;
-				sr.foreground = failed ? red : green;
+				sr.foreground = col;
 				sr.fontStyle = SWT.BOLD;
 				ranges.add(sr);
 			}
@@ -110,6 +123,7 @@ public class ResultsView extends ViewPart {
 	private String statusText(String status) {
 		if ("passed".equals(status)) return "PASSED";
 		if ("failed".equals(status)) return "FAILED";
+		if ("skipped".equals(status)) return "SKIPPED";
 		return String.valueOf(status);
 	}
 }

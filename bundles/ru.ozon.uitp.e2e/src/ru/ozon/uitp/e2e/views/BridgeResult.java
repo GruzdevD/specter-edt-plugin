@@ -64,13 +64,31 @@ public final class BridgeResult {
 		public boolean isFailed() {
 			return "failed".equals(status);
 		}
+
+		public boolean isSkipped() {
+			return "skipped".equals(status);
+		}
+
+		public boolean isPassed() {
+			return "passed".equals(status);
+		}
 	}
 
-	/** Сводка: сколько шагов прошло / провалено. */
+	/** Сводка: сколько шагов прошло / провалено / пропущено. */
 	public int passedCount() {
 		int n = 0;
 		for (Step s : steps) {
-			if (!s.isFailed()) {
+			if (s.isPassed()) {
+				n++;
+			}
+		}
+		return n;
+	}
+
+	public int skippedCount() {
+		int n = 0;
+		for (Step s : steps) {
+			if (s.isSkipped()) {
 				n++;
 			}
 		}
@@ -78,11 +96,25 @@ public final class BridgeResult {
 	}
 
 	public int failedCount() {
-		return steps.size() - passedCount();
+		int n = 0;
+		for (Step s : steps) {
+			if (s.isFailed()) {
+				n++;
+			}
+		}
+		return n;
 	}
 
 	public boolean isFailed() {
-		return "failed".equals(status);
+		if ("failed".equals(status)) {
+			return true;
+		}
+		for (Step s : steps) {
+			if (s.isFailed()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override

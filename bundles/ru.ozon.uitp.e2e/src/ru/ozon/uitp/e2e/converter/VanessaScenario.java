@@ -17,12 +17,22 @@ public class VanessaScenario {
 	private List<VanessaStep> steps = new ArrayList<>();
 	private boolean selected = true;
 	private String targetModuleName;
+	private boolean skipped = false;
+	private String skipReason = "";
 
 	public VanessaScenario(String featureName, String scenarioName, File sourceFile) {
 		this.featureName = featureName;
 		this.scenarioName = scenarioName;
 		this.sourceFile = sourceFile;
 		this.targetModuleName = generateDefaultModuleName(scenarioName);
+	}
+
+	public boolean isSkipped() {
+		return skipped;
+	}
+
+	public String getSkipReason() {
+		return skipReason;
 	}
 
 	public static String generateDefaultModuleName(String scenarioName) {
@@ -83,6 +93,26 @@ public class VanessaScenario {
 
 	public void addTag(String tag) {
 		this.tags.add(tag);
+		checkSkipTag(tag);
+	}
+
+	private void checkSkipTag(String tag) {
+		if (tag == null) return;
+		String lower = tag.toLowerCase();
+		if (lower.startsWith("skip") || lower.startsWith("ignore") || lower.startsWith("bug")) {
+			this.skipped = true;
+			java.util.regex.Matcher m = java.util.regex.Pattern.compile("[\"']([^\"']+)[\"']").matcher(tag);
+			if (m.find()) {
+				this.skipReason = m.group(1);
+			} else {
+				int idx = tag.indexOf('-');
+				if (idx > 0 && idx < tag.length() - 1) {
+					this.skipReason = tag.substring(idx + 1);
+				} else {
+					this.skipReason = tag;
+				}
+			}
+		}
 	}
 
 	public List<VanessaStep> getSteps() {
