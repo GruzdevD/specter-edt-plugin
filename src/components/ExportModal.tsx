@@ -49,7 +49,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
-        {/* Header */}
+              {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -57,11 +57,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                 <Sparkles className="w-4 h-4" />
               </div>
               <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                Дистрибутивы релиза v0.2.0 & Исходники Specter
+                Дистрибутивы релиза v0.3.0 & Исходники Specter
               </h3>
             </div>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Единая версия плагина и расширения (<code className="font-mono text-indigo-600 font-bold">0.2.0</code>). Готовые архивы сборки и проверенные патчи.
+              Единая версия плагина и расширения (<code className="font-mono text-indigo-600 font-bold">0.3.0</code>). Готовые архивы сборки и проверенные патчи.
             </p>
           </div>
           <button
@@ -83,7 +83,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
             }`}
           >
             <Archive className="w-3.5 h-3.5" />
-            <span>Пакеты релиза v0.2.0 (ZIP)</span>
+            <span>Пакеты релиза v0.3.0 (ZIP)</span>
           </button>
           <button
             onClick={() => setActiveTab('files')}
@@ -112,25 +112,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-slate-900">
-                          UITP-EDT.v0.2.0.zip
+                          UITP-EDT.v0.3.0.zip
                         </span>
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
-                          EDT Plugin v0.2.0
+                          EDT Plugin v0.3.0
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Update-site и OSGi бандлы плагина (<code className="font-mono text-[11px]">ru.ozon.uitp.e2e</code>, feature, repository, targets). Включает интеграцию маркерного запуска из Gutter редактора BSL.
+                        Update-site и OSGi бандлы плагина (<code className="font-mono text-[11px]">ru.ozon.uitp.e2e</code>, feature, repository, targets). Включает конвертер Vanessa Automation, SpecterPreferencePage и Gutter-маркеры.
                       </p>
                       <div className="flex items-center gap-3 mt-2.5 text-[11px] text-slate-400 font-mono">
-                        <span>Размер: ~39.3 KB</span>
+                        <span>Размер: ~115 KB</span>
                         <span>•</span>
                         <span>Формат: Eclipse p2 repository</span>
                       </div>
                     </div>
                   </div>
                   <a
-                    href="/releases/UITP-EDT.v0.2.0.zip"
-                    download="UITP-EDT.v0.2.0.zip"
+                    href="https://github.com/GruzdevD/specter-edt-plugin/releases/download/v0.3.0/UITP-EDT.v0.3.0.zip"
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-white text-xs font-bold shadow-xs transition-all shrink-0"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -149,25 +150,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-slate-900">
-                          UITP-EXTENSION.СП_Тестирование.v0.2.0.zip
+                          UITP-EXTENSION._.v0.3.0.zip
                         </span>
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          1С Расширение v0.2.0
+                          1С Расширение v0.3.0
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Чистый движок расширения <code className="font-mono text-[11px]">СП_Тестирование</code> без захардкоженных тестов: BSL-мост, <code className="font-mono text-[11px]">СП_ДействияКлиент</code>, <code className="font-mono text-[11px]">СП_ОжиданияКлиент</code>, генератор тестовых данных.
+                        Чистый движок расширения <code className="font-mono text-[11px]">СП_Тестирование</code>: BSL-мост, <code className="font-mono text-[11px]">СП_ДействияКлиент</code>, <code className="font-mono text-[11px]">СП_ОжиданияКлиент</code>, генератор тестовых данных.
                       </p>
                       <div className="flex items-center gap-3 mt-2.5 text-[11px] text-slate-400 font-mono">
-                        <span>Размер: ~55.8 KB</span>
+                        <span>Размер: ~58 KB</span>
                         <span>•</span>
                         <span>34 файла метаданных EDT/1C</span>
                       </div>
                     </div>
                   </div>
                   <a
-                    href="/releases/UITP-EXTENSION.СП_Тестирование.v0.2.0.zip"
-                    download="UITP-EXTENSION.СП_Тестирование.v0.2.0.zip"
+                    href="https://github.com/GruzdevD/specter-edt-plugin/releases/download/v0.3.0/UITP-EXTENSION._.v0.3.0.zip"
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white text-xs font-bold shadow-xs transition-all shrink-0"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -180,7 +182,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
               <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100/80 text-xs text-slate-600 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span>
-                  <strong>Синхронизация версий:</strong> Версия плагина (<code className="font-mono font-semibold text-slate-800">pom.xml</code>, <code className="font-mono font-semibold text-slate-800">MANIFEST.MF</code>) строго равна версии расширения (<code className="font-mono font-semibold text-slate-800">Configuration.mdo</code>) = <strong className="text-indigo-700">0.2.0</strong>.
+                  <strong>Синхронизация версий:</strong> Версия плагина (<code className="font-mono font-semibold text-slate-800">pom.xml</code>, <code className="font-mono font-semibold text-slate-800">MANIFEST.MF</code>) строго равна версии расширения (<code className="font-mono font-semibold text-slate-800">Configuration.mdo</code>) = <strong className="text-indigo-700">0.3.0</strong>.
                 </span>
               </div>
             </div>

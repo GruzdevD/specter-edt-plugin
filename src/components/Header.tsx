@@ -91,31 +91,67 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Navigation and Actions */}
           <div className="flex items-center gap-3 shrink-0">
-            <nav className="flex items-center gap-1 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
+            <nav className="flex items-center gap-1 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner overflow-x-auto max-w-full">
+              <button
+                id="tab-design"
+                onClick={() => setActiveTab('design')}
+                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
+                  activeTab === 'design'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}
+              >
+                <Layout className={`w-3.5 h-3.5 ${activeTab === 'design' ? 'text-white' : 'text-indigo-600'}`} />
+                <span>Воркбенч EDT</span>
+                <span className={`px-1.5 py-0.5 font-mono rounded-md text-[10px] font-bold ${
+                  activeTab === 'design' ? 'bg-indigo-700 text-white' : 'bg-indigo-100 text-indigo-800'
+                }`}>
+                  v0.3.0
+                </span>
+              </button>
+
+              <button
+                id="tab-forms1c"
+                onClick={() => setActiveTab('forms1c')}
+                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
+                  activeTab === 'forms1c'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}
+              >
+                <AppWindow className={`w-3.5 h-3.5 ${activeTab === 'forms1c' ? 'text-white' : 'text-amber-500'}`} />
+                <span>1С Студия & Отчёт</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                  activeTab === 'forms1c' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-900'
+                }`}>
+                  HTML Live
+                </span>
+              </button>
+
               <button
                 id="tab-overview"
                 onClick={() => setActiveTab('overview')}
-                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
                   activeTab === 'overview'
                     ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'overview' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                <span>Сводка</span>
+                <span>Сводка & Аудит</span>
               </button>
 
               <button
                 id="tab-issues"
                 onClick={() => setActiveTab('issues')}
-                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
                   activeTab === 'issues'
                     ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Bug className={`w-3.5 h-3.5 ${activeTab === 'issues' ? 'text-rose-600' : 'text-slate-400'}`} />
-                <span>Ошибки</span>
+                <span>Замечания</span>
                 <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 font-mono rounded-md text-[10px] font-bold">
                   {issuesCount}
                 </span>
@@ -124,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 id="tab-files"
                 onClick={() => setActiveTab('files')}
-                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
                   activeTab === 'files'
                     ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -140,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 id="tab-simulation"
                 onClick={() => setActiveTab('simulation')}
-                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
                   activeTab === 'simulation'
                     ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -149,48 +185,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <Terminal className={`w-3.5 h-3.5 ${activeTab === 'simulation' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>Песочница EDT</span>
               </button>
-
-              <button
-                id="tab-forms1c"
-                onClick={() => setActiveTab('forms1c')}
-                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
-                  activeTab === 'forms1c'
-                    ? 'bg-amber-500 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <AppWindow className={`w-3.5 h-3.5 ${activeTab === 'forms1c' ? 'text-white' : 'text-amber-500'}`} />
-                <span>1С Тесты & HTML Отчёт</span>
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                  activeTab === 'forms1c' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-900'
-                }`}>
-                  Live
-                </span>
-              </button>
-
-              <button
-                id="tab-design"
-                onClick={() => setActiveTab('design')}
-                className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
-                  activeTab === 'design'
-                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Layout className={`w-3.5 h-3.5 ${activeTab === 'design' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <span>Дизайн До/После</span>
-                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-mono rounded-md text-[10px] font-bold">
-                  New
-                </span>
-              </button>
             </nav>
 
             <button
               onClick={onOpenExport}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-sm transition-all duration-150 border border-slate-800"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-sm transition-all duration-150 border border-slate-800 shrink-0"
             >
               <Download className="w-3.5 h-3.5 text-slate-300" />
-              <span>Экспорт файлов</span>
+              <span>Релиз v0.3.0</span>
             </button>
           </div>
         </div>
