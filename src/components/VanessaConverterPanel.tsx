@@ -597,7 +597,6 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
   <comment>Сконвертировано из Vanessa Automation в движок СП_Тестирование</comment>
   <clientManagedApplication>true</clientManagedApplication>
   <clientOrdinaryApplication>true</clientOrdinaryApplication>
-  <server>true</server>
 </mdclass:CommonModule>`}
               </pre>
             )}
@@ -605,11 +604,13 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
             {previewTab === 'mapping' && (
               <div className="space-y-3 font-sans">
                 <div className="text-xs font-bold text-slate-900 dark:text-white">
-                  Таблица соответствия шагов Vanessa → Методы СП_Тестирование:
+                  Таблица соответствия шагов Vanessa → Реальный API СП_Тестирование:
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                   <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-1">
                     <div className="font-bold text-amber-700 dark:text-amber-300">Vanessa Automation (Gherkin)</div>
+                    <div className="text-[11px] font-mono text-slate-700 dark:text-slate-300">Контракт Discovery движка</div>
+                    <div className="text-[11px] font-mono text-slate-700 dark:text-slate-300">Контракт Runner набора</div>
                     <div className="text-[11px] font-mono text-slate-700 dark:text-slate-300">Дано Я открываю форму "..."</div>
                     <div className="text-[11px] font-mono text-slate-700 dark:text-slate-300">Когда Я нажимаю кнопку "..."</div>
                     <div className="text-[11px] font-mono text-slate-700 dark:text-slate-300">И Я заполняю поле "..." текстом "..."</div>
@@ -619,11 +620,13 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
 
                   <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/30 space-y-1">
                     <div className="font-bold text-indigo-700 dark:text-indigo-300">Движок СП_Тестирование (BSL)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ТестовыйКлиент.ОткрытьФорму(...)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.НажатьКнопку(...)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.ЗаполнитьПоле(...)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ОжиданияКлиент.ЖдатьПоявленияЭлемента(...)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_Утверждения.УтверждениеРавенство(...)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Экспортная Функция СписокТестов()</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Экспортная Функция ЗапуститьНаборТестов(Критерии)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Форма = ОткрытьФорму(...)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.НажатьКнопку(Форма, Имя)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.УстановитьЗначение(Форма, Имя, Знач)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ОжиданияКлиент.ДождатьсяВидимостиЭлемента(Форма, Имя, Сек)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.ПолучитьЗначение + СП_Утверждения</div>
                   </div>
                 </div>
               </div>
