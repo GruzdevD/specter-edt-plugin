@@ -7,7 +7,7 @@
   <parent>
     <groupId>ru.ozon.uitp</groupId>
     <artifactId>uitp-edt-plugin.parent</artifactId>
-    <version>0.3.3-SNAPSHOT</version>
+    <version>0.3.4-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 

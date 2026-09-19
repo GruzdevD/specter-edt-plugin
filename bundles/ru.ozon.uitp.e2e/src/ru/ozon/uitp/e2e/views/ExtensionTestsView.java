@@ -80,7 +80,7 @@ public class ExtensionTestsView extends ViewPart {
 
 		viewer = new TreeViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
 		viewer.setContentProvider(new ExtensionTreeContentProvider());
-		viewer.setLabelProvider(new ExtensionTreeLabelProvider());
+		viewer.setLabelProvider(new ExtensionTreeStyledLabelProvider());
 
 		// Кастомная отрисовка эмблемы Specter в бэкграунде
 		viewer.getTree().addPaintListener(new PaintListener() {

@@ -49,7 +49,7 @@ export default function App() {
                   Specter 1C:EDT & 1C:Enterprise E2E Testing Platform
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Релиз v0.3.3
+                  Релиз v0.3.4
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
@@ -104,7 +104,7 @@ export default function App() {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.97] text-white text-xs font-bold shadow-xs transition-all border border-slate-800"
             >
               <Download className="w-3.5 h-3.5 text-slate-300" />
-              <span>Скачать v0.3.3</span>
+              <span>Скачать v0.3.4</span>
             </button>
           </div>
         </div>
@@ -147,19 +147,19 @@ export default function App() {
             <img src="/icons/specter-emblem.svg" alt="Specter" className="w-4 h-4 object-contain" />
             <span className="font-bold text-slate-800">Specter for 1C:EDT</span>
             <span className="text-slate-300">•</span>
-            <span>Eclipse RCP / OSGi Plugin Suite v0.3.3</span>
+            <span>Eclipse RCP / OSGi Plugin Suite v0.3.4</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px] text-slate-400">Tycho 5.0.4 • JDK 17 • Eclipse 4.30+</span>
             <span className="text-slate-300">•</span>
             <a 
-              href="https://github.com/GruzdevD/specter-edt-plugin/releases/tag/v0.3.3" 
+              href="https://github.com/GruzdevD/specter-edt-plugin/releases/tag/v0.3.4" 
               target="_blank" 
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-semibold text-[11px] hover:underline"
             >
               <Download className="w-3.5 h-3.5" />
-              GitHub Release v0.3.3
+              GitHub Release v0.3.4
             </a>
           </div>
         </div>

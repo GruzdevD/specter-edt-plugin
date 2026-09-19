@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="f4a9b310-7422-4820-91cd-332994119d88">
+  <name>СП_ТестированиеКлиент</name>
+  <synonym>
+    <key>ru</key>
+    <value>СП: Тестирование (Клиентский раннер и контекст)</value>
+  </synonym>
+  <comment>Клиентский диспетчер тестов и контекстная память сценариев Vanessa</comment>
+  <clientManagedApplication>true</clientManagedApplication>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+</mdclass:CommonModule>

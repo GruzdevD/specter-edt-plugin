@@ -156,7 +156,7 @@ public class TestsView extends ViewPart {
 		testViewer = new TreeViewer(leftComp, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
 		testViewer.getTree().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		testViewer.setContentProvider(new TestsTreeContentProvider());
-		testViewer.setLabelProvider(new TestsTreeLabelProvider());
+		testViewer.setLabelProvider(new TestsTreeStyledLabelProvider());
 
 		// Кастомная фоновая эмблема Specter в бэкграунде дерева, когда нет данных
 		testViewer.getTree().addPaintListener(new PaintListener() {

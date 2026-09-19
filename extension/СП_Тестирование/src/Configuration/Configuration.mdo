@@ -6,7 +6,7 @@
     <value>Спектер: Движок UI-тестирования 1С</value>
   </synonym>
   <comment>Движок UI-тестирования и BSL-адаптер Specter. Префикс СП_. Модули тестов создаются разработчиками локально.</comment>
-  <version>0.3.3</version>
+  <version>0.3.4</version>
   <objectBelonging>Adopted</objectBelonging>
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
     <managedApplicationModule>Extended</managedApplicationModule>
@@ -49,6 +49,7 @@
   <commonModules>CommonModule.СП_ОжиданияКлиент</commonModules>
   <commonModules>CommonModule.СП_ПроксиФормыКлиент</commonModules>
   <commonModules>CommonModule.СП_Тестирование</commonModules>
+  <commonModules>CommonModule.СП_ТестированиеКлиент</commonModules>
   <commonModules>CommonModule.СП_Утверждения</commonModules>
   <dataProcessors>DataProcessor.СП_КонсольТестов</dataProcessors>
   <dataProcessors>DataProcessor.СП_УправлениеФормами</dataProcessors>

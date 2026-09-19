@@ -590,11 +590,11 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
                     <div className="font-bold text-indigo-700 dark:text-indigo-300">Движок СП_Тестирование (BSL)</div>
                     <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Экспортная Функция СписокТестов()</div>
                     <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Экспортная Функция ЗапуститьНаборТестов(Критерии)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Форма = ОткрытьФорму(...)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">Форма = СП_ТестированиеКлиент.ОткрытьФормуУниверсально(...)</div>
                     <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.НажатьКнопку(Форма, Имя)</div>
                     <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.УстановитьЗначение(Форма, Имя, Знач)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ОжиданияКлиент.ДождатьсяВидимостиЭлемента(Форма, Имя, Сек)</div>
-                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.ПолучитьЗначение + СП_Утверждения</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ДействияКлиент.ПерейтиНаВкладку(Форма, Имя)</div>
+                    <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">СП_ТестированиеКлиент.ВычислитьЗначениеСПамятью($$X$$)</div>
                   </div>
                 </div>
               </div>
