@@ -65,9 +65,11 @@ jobs:
         with:
           name: UITP-EDT v${{ steps.version.outputs.version }}
           body: |
-            Малый EDT-плагин запуска UI-моста (кнопка «Запустить сценарий»).
+            **Specter** — EDT-плагин UI-тестирования 1С: панели «Тесты» / «Результаты»,
+            запуск тестового набора прямо из редактора его общего модуля через
+            BSL-мост на реальном UI 1С (без .epf, видео и скриншотов).
 
             Установка через UI EDT: **Help → Install New Software → Work with:**
-            `https://gruzdevd.github.io/specter-edt-plugin/` → категория «Specter».
+            `https://gruzdevd.github.io/specter-edt-plugin/` → «Next» → Next → «Restart Now».
           files: |
             UITP-EDT.v*.zip
