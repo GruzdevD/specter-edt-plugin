@@ -25,6 +25,14 @@ public class ResultsView extends ViewPart {
 		text.setEditable(false);
 		BridgeResultStore.get().addListener(storeListener);
 		showResult(BridgeResultStore.get().current());
+		try {
+			org.eclipse.jface.resource.ImageDescriptor desc = ru.ozon.uitp.e2e.Activator.imageDescriptorFromPlugin(
+				ru.ozon.uitp.e2e.Activator.BUNDLE_ID, "icons/specter-results.png");
+			if (desc != null) {
+				setTitleImage(desc.createImage());
+			}
+		} catch (Throwable ignored) {
+		}
 	}
 
 	@Override

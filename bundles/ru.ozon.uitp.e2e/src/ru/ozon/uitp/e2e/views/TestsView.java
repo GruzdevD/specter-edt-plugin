@@ -59,6 +59,14 @@ public class TestsView extends ViewPart {
 		viewer.setLabelProvider(new NodeLabelProvider());
 
 		createToolbarActions();
+		try {
+			org.eclipse.jface.resource.ImageDescriptor desc = ru.ozon.uitp.e2e.Activator.imageDescriptorFromPlugin(
+				ru.ozon.uitp.e2e.Activator.BUNDLE_ID, "icons/specter-tests.png");
+			if (desc != null) {
+				setTitleImage(desc.createImage());
+			}
+		} catch (Throwable ignored) {
+		}
 		BridgeResultStore.get().addListener(storeListener);
 
 		try {

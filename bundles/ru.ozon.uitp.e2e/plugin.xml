@@ -10,6 +10,7 @@
             id="ru.ozon.uitp.e2e.views.TestsView"
             category="ru.ozon.uitp.e2e.views.category"
             name="Тесты"
+            icon="icons/specter-tests.png"
             class="ru.ozon.uitp.e2e.views.TestsView"
             restorable="true">
       </view>
@@ -17,6 +18,7 @@
             id="ru.ozon.uitp.e2e.views.ResultsView"
             category="ru.ozon.uitp.e2e.views.category"
             name="Результаты"
+            icon="icons/specter-results.png"
             class="ru.ozon.uitp.e2e.views.ResultsView"
             restorable="true">
       </view>
