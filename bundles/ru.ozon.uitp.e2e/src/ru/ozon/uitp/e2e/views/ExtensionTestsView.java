@@ -60,6 +60,29 @@ public class ExtensionTestsView extends ViewPart {
 		});
 	};
 
+	private final org.eclipse.core.resources.IResourceChangeListener workspaceChangeListener = event -> {
+		org.eclipse.core.resources.IResourceDelta delta = event.getDelta();
+		if (delta == null) return;
+		try {
+			delta.accept(d -> {
+				org.eclipse.core.resources.IResource res = d.getResource();
+				if (res instanceof org.eclipse.core.resources.IFile) {
+					String name = res.getName().toLowerCase();
+					if (name.endsWith(".bsl") || name.endsWith(".os")) {
+						Display.getDefault().asyncExec(() -> {
+							if (viewer != null && !viewer.getControl().isDisposed()) {
+								populateDefaultExtensionModules();
+								viewer.refresh();
+							}
+						});
+						return false;
+					}
+				}
+				return true;
+			});
+		} catch (Throwable ignored) {}
+	};
+
 	@Override
 	public void createPartControl(Composite parent) {
 		parent.setLayout(new FillLayout());
@@ -99,6 +122,12 @@ public class ExtensionTestsView extends ViewPart {
 		hookDoubleClick();
 
 		BridgeResultStore.get().addListener(storeListener);
+		try {
+			org.eclipse.core.resources.ResourcesPlugin.getWorkspace().addResourceChangeListener(
+				workspaceChangeListener,
+				org.eclipse.core.resources.IResourceChangeEvent.POST_CHANGE
+			);
+		} catch (Throwable ignored) {}
 
 		viewer.setInput(this);
 		viewer.expandAll();
@@ -136,33 +165,92 @@ public class ExtensionTestsView extends ViewPart {
 	private void populateDefaultExtensionModules() {
 		modules.clear();
 
-		// Модуль 1: Клиентские сценарии (UI / Vanessa-стиль)
-		ModuleNode m1 = new ModuleNode("СП_ТестыКлиентскихСценариев", "Клиентские сценарии и карточки форм");
-		m1.tests.add(new TestItemNode(m1, "Тест_ПроверкаРеквизитовКонтрагента_ПриОткрытии", "Проверка полей, ИНН и доступности кнопок карточки"));
-		m1.tests.add(new TestItemNode(m1, "Тест_ПроведениеЗаказаПокупателя_РасчетСуммы", "Добавление строк в ТЧ, расчет скидки, нажатие Провести"));
-		m1.tests.add(new TestItemNode(m1, "Тест_ВалидацияНекорректногоКПП_ВыводОшибки", "Проверка предупреждений и подсказок валидации КПП"));
-		m1.tests.add(new TestItemNode(m1, "Тест_ДинамическаяКартаАктивнойФормы_Инспектор", "Снятие карты контролов активной формы (команда inspect)"));
-		modules.add(m1);
+		// Динамическое сканирование всех файлов воркспейса Eclipse/EDT по правилам движка
+		try {
+			org.eclipse.core.resources.IWorkspaceRoot root = org.eclipse.core.resources.ResourcesPlugin.getWorkspace().getRoot();
+			root.accept(new org.eclipse.core.resources.IResourceVisitor() {
+				@Override
+				public boolean visit(org.eclipse.core.resources.IResource res) throws org.eclipse.core.runtime.CoreException {
+					if (res instanceof org.eclipse.core.resources.IFile) {
+						org.eclipse.core.resources.IFile file = (org.eclipse.core.resources.IFile) res;
+						String fileName = file.getName().toLowerCase();
+						if (fileName.endsWith(".bsl") || fileName.endsWith(".os")) {
+							String modName = BslTestMarkerManager.resolveModuleName(file, null);
+							// Исключаем служебные модули движка СП_
+							if (EditorModuleSupport.isTestSetName(modName)) {
+								List<BslTestMarkerManager.TestMethodInfo> tests = discoverTestsInFile(file, modName);
+								if (!tests.isEmpty()) {
+									ModuleNode modNode = new ModuleNode(modName, file.getProject().getName() + " (" + tests.size() + " тестов)");
+									for (BslTestMarkerManager.TestMethodInfo t : tests) {
+										modNode.tests.add(new TestItemNode(modNode, t.name, "Строка " + t.lineNumber));
+									}
+									modules.add(modNode);
+								}
+							}
+						}
+					}
+					return true;
+				}
+			});
+		} catch (Throwable t) {
+			Activator.logError("Ошибка динамического обнаружения тестов в ExtensionTestsView", t);
+		}
+	}
 
-		// Модуль 2: Управление формами
-		ModuleNode m2 = new ModuleNode("СП_ТестыФорм", "Сценарии обработки СП_УправлениеФормами");
-		m2.tests.add(new TestItemNode(m2, "Тест_ОткрытиеКарточки_ПроверкаЭлементов", "Проверка видимости и доступности ключевых реквизитов"));
-		m2.tests.add(new TestItemNode(m2, "Тест_ЗаполнениеПолей_БлокировкаКнопок", "Тестирование автоблокировки при несохраненных изменениях"));
-		m2.tests.add(new TestItemNode(m2, "Тест_ПереходПоВкладкам_Валидация", "Переключение страниц панели и проверка фокуса ввода"));
-		modules.add(m2);
+	private static final java.util.regex.Pattern TEST_METHOD_PATTERN = java.util.regex.Pattern.compile(
+			"(?i)^\\s*(?:(?:Процедура|Функция|Procedure|Function)\\s+([a-zA-Zа-яА-Я0-9_]+))\\s*(?:\\(.*)?",
+			java.util.regex.Pattern.UNICODE_CHARACTER_CLASS);
 
-		// Модуль 3: Утверждения и проверки
-		ModuleNode m3 = new ModuleNode("СП_ТестыУтверждений", "Набор проверок модуля СП_Утверждения");
-		m3.tests.add(new TestItemNode(m3, "Тест_АссертРавно_ЧислаИСтроки", "Проверка равенства типов и строк без маскировки"));
-		m3.tests.add(new TestItemNode(m3, "Тест_АссертИстина_Условия", "Проверка булевых условий и выражений"));
-		m3.tests.add(new TestItemNode(m3, "Тест_АссертМодифицированность_СбросФлага", "Контроль флага Модифицированность формы"));
-		modules.add(m3);
+	private static final java.util.regex.Pattern TEST_ANNOTATION_PATTERN = java.util.regex.Pattern.compile(
+			"(?i)^\\s*(?:&Тест|&Test|//\\s*@test|//\\s*@тест|//\\s*Тест:|//\\s*Test:).*",
+			java.util.regex.Pattern.UNICODE_CHARACTER_CLASS);
 
-		// Модуль 4: Интеграция моста
-		ModuleNode m4 = new ModuleNode("СП_ТестыИнтеграции", "Проверка протокола связи EDT с тонким клиентом");
-		m4.tests.add(new TestItemNode(m4, "Тест_СквознойЗапускМоста_Антимаскировка", "Передача runId и валидация схемы результата"));
-		m4.tests.add(new TestItemNode(m4, "Тест_ПарсингКомандJson_СогласованныйRunId", "Парсинг массива команд сценария моста"));
-		modules.add(m4);
+	private static List<BslTestMarkerManager.TestMethodInfo> discoverTestsInFile(org.eclipse.core.resources.IFile file, String modName) {
+		List<BslTestMarkerManager.TestMethodInfo> result = new ArrayList<>();
+		try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getContents(true), java.nio.charset.StandardCharsets.UTF_8))) {
+			String line;
+			int lineNum = 0;
+			boolean hasTestAnnotation = false;
+
+			while ((line = reader.readLine()) != null) {
+				lineNum++;
+				if (TEST_ANNOTATION_PATTERN.matcher(line).matches()) {
+					hasTestAnnotation = true;
+					continue;
+				}
+
+				java.util.regex.Matcher m = TEST_METHOD_PATTERN.matcher(line);
+				if (m.matches()) {
+					String procName = m.group(1);
+					boolean isExport = line.contains("Экспорт") || line.contains("Export")
+							|| line.toLowerCase().contains("экспорт") || line.toLowerCase().contains("export");
+
+					if (hasTestAnnotation || isExport || isTestProcName(procName)) {
+						result.add(new BslTestMarkerManager.TestMethodInfo(procName, lineNum));
+					}
+					hasTestAnnotation = false;
+				} else {
+					if (!line.trim().isEmpty() && !line.trim().startsWith("//")) {
+						hasTestAnnotation = false;
+					}
+				}
+			}
+		} catch (Throwable ignored) {
+		}
+		return result;
+	}
+
+	private static boolean isTestProcName(String name) {
+		if (name == null) return false;
+		String lower = name.toLowerCase();
+		return lower.startsWith("тест_")
+				|| lower.startsWith("тест")
+				|| lower.startsWith("test_")
+				|| lower.startsWith("test")
+				|| lower.startsWith("проверить_")
+				|| lower.startsWith("проверить")
+				|| lower.startsWith("check_")
+				|| lower.startsWith("check");
 	}
 
 	private void createActions() {
@@ -367,6 +455,9 @@ public class ExtensionTestsView extends ViewPart {
 
 	@Override
 	public void dispose() {
+		try {
+			org.eclipse.core.resources.ResourcesPlugin.getWorkspace().removeResourceChangeListener(workspaceChangeListener);
+		} catch (Throwable ignored) {}
 		BridgeResultStore.get().removeListener(storeListener);
 		if (specterLogoImage != null && !specterLogoImage.isDisposed()) {
 			specterLogoImage.dispose();
