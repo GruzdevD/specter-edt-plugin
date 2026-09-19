@@ -8,9 +8,12 @@ Bundle-Activator: ru.ozon.uitp.e2e.Activator
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ org.eclipse.core.jobs,
  org.eclipse.debug.core,
  org.eclipse.debug.ui,
  org.eclipse.ui,
+ org.eclipse.ui.workbench,
  org.eclipse.ui.views,
  org.eclipse.jface,
  org.eclipse.swt,
@@ -18,4 +21,6 @@ Require-Bundle: org.eclipse.core.runtime,
  com._1c.g5.v8.dt.launching.core,
  com._1c.g5.v8.dt.metadata,
  com._1c.g5.v8.dt.bsl.model
-Export-Package: ru.ozon.uitp.e2e.launcher
+Export-Package: ru.ozon.uitp.e2e,
+ ru.ozon.uitp.e2e.launcher,
+ ru.ozon.uitp.e2e.views

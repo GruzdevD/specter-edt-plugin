@@ -1,24 +1,46 @@
 package ru.ozon.uitp.e2e;
 
-import org.osgi.framework.BundleActivator;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 /**
- * Activator бандла. На этом этапе служебный (константа ID + название), реальная
- * логика вынесена в {@link ru.ozon.uitp.e2e.launcher.BridgeLaunchHelper}.
+ * Полноценный UI-активатор плагина Specter в соответствии со стандартами Eclipse RCP.
  */
-public final class Activator implements BundleActivator {
+public final class Activator extends AbstractUIPlugin {
 
-	/** Идентификатор бандла (Bundle-SymbolicName). */
 	public static final String BUNDLE_ID = "ru.ozon.uitp.e2e";
+	private static Activator plugin;
 
-	@Override
-	public void start(BundleContext context) {
-		// no-op: ленивая инициализация не требуется
+	public Activator() {
 	}
 
 	@Override
-	public void stop(BundleContext context) {
-		// no-op
+	public void start(BundleContext context) throws Exception {
+		super.start(context);
+		plugin = this;
+	}
+
+	@Override
+	public void stop(BundleContext context) throws Exception {
+		plugin = null;
+		super.stop(context);
+	}
+
+	public static Activator getDefault() {
+		return plugin;
+	}
+
+	public static void logInfo(String message) {
+		if (plugin != null) {
+			plugin.getLog().log(new Status(IStatus.INFO, BUNDLE_ID, message));
+		}
+	}
+
+	public static void logError(String message, Throwable throwable) {
+		if (plugin != null) {
+			plugin.getLog().log(new Status(IStatus.ERROR, BUNDLE_ID, message, throwable));
+		}
 	}
 }

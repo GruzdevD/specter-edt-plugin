@@ -1,5 +1,7 @@
 package ru.ozon.uitp.e2e.views;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
@@ -8,20 +10,13 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
 /**
- * Панель «Результаты» — детализация последнего прогона моста, по образцу
- * результатов YAxUnit в EDT. Показывает пошаговый отчёт ({@code id — action —
- * статус — detail}) с цветовой подсветкой: {@code passed} зелёным, {@code failed}
- * красным. Обновляется автоматически при публикации нового результата в
- * {@link BridgeResultStore} (панель подписывается на тот же стор, что и
- * {@link TestsView}).</p>
+ * Панель «Результаты» (Specter): пошаговый лог сценария моста на SWT StyledText.
+ * Корректный расчет StyleRange и линейная O(N) генерация разметки.
  */
 public class ResultsView extends ViewPart {
 
-	/** Идентификатор панели (регистрируется в plugin.xml → org.eclipse.ui.views). */
 	public static final String ID = "ru.ozon.uitp.e2e.views.ResultsView";
-
 	private final BridgeResultStore.Listener storeListener = this::showResult;
-
 	private StyledText text;
 
 	@Override
@@ -49,7 +44,7 @@ public class ResultsView extends ViewPart {
 		if (text == null || text.isDisposed()) {
 			return;
 		}
-		if (r == null || r.status.equals("hint")) {
+		if (r == null || "hint".equals(r.status)) {
 			text.setText("Результат моста не найден. Запусти сценарий на панели «Тесты».");
 			return;
 		}
@@ -70,64 +65,43 @@ public class ResultsView extends ViewPart {
 			}
 			sb.append('\n');
 		}
-		text.setText(sb.toString());
 
-		// Цветовая подсветка строк шагов: цвета применяем построчно к префиксу статуса.
+		String fullText = sb.toString();
+		text.setText(fullText);
+
 		Color green = text.getDisplay().getSystemColor(SWT.COLOR_DARK_GREEN);
 		Color red = text.getDisplay().getSystemColor(SWT.COLOR_RED);
-		String[] lines = sb.toString().split("\n", -1);
 
-		// Сначала снимем все стили, затем расставим заново.
-		StyleRange[] ranges = new StyleRange[0];
-		// (сброс проще через setStyleRanges(new StyleRange[0]))
-		for (int li = 0; li < lines.length; li++) {
-			String line = lines[li];
-			int colondIdx = line.indexOf("—");
-			if (colondIdx < 0) {
-				continue;
+		String[] lines = fullText.split("\n", -1);
+		List<StyleRange> ranges = new ArrayList<>();
+		int lineStart = 0;
+
+		for (String line : lines) {
+			int statusIdx = line.indexOf("FAILED");
+			boolean failed = true;
+			int len = 6;
+			if (statusIdx < 0) {
+				statusIdx = line.indexOf("PASSED");
+				failed = false;
+				len = 6;
 			}
-			boolean failed = line.contains("FAILED");
-			if (!failed && !line.contains("PASSED")) {
-				continue;
+			if (statusIdx >= 0) {
+				StyleRange sr = new StyleRange();
+				sr.start = lineStart + statusIdx; // Точное смещение слова статуса
+				sr.length = len;
+				sr.foreground = failed ? red : green;
+				sr.fontStyle = SWT.BOLD;
+				ranges.add(sr);
 			}
-			int lineStart = offsetOf(sb, li);
-			StyleRange sr = new StyleRange();
-			sr.start = lineStart + colondIdx - 3;
-			sr.length = 6; // "PASSED"/"FAILED" плюс пробелы
-			sr.foreground = failed ? red : green;
-			sr.fontStyle = SWT.BOLD;
-			ranges = append(ranges, sr);
+			lineStart += line.length() + 1;
 		}
-		text.setStyleRanges(ranges);
-	}
 
-	/** Смещение начала строки {@code lineIndex} в многострочной строке (0-based). */
-	private static int offsetOf(CharSequence cs, int lineIndex) {
-		int idx = 0;
-		int line = 0;
-		while (line < lineIndex && idx < cs.length()) {
-			if (cs.charAt(idx) == '\n') {
-				line++;
-			}
-			idx++;
-		}
-		return idx;
-	}
-
-	private static StyleRange[] append(StyleRange[] arr, StyleRange sr) {
-		StyleRange[] out = new StyleRange[arr.length + 1];
-		System.arraycopy(arr, 0, out, 0, arr.length);
-		out[arr.length] = sr;
-		return out;
+		text.setStyleRanges(ranges.toArray(new StyleRange[0]));
 	}
 
 	private String statusText(String status) {
-		if ("passed".equals(status)) {
-			return "PASSED";
-		}
-		if ("failed".equals(status)) {
-			return "FAILED";
-		}
+		if ("passed".equals(status)) return "PASSED";
+		if ("failed".equals(status)) return "FAILED";
 		return String.valueOf(status);
 	}
 }

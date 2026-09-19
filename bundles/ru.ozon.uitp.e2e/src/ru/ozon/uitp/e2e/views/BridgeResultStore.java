@@ -3,30 +3,26 @@ package ru.ozon.uitp.e2e.views;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.function.Consumer;
 import org.eclipse.core.runtime.CoreException;
-
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.swt.widgets.Display;
 import ru.ozon.uitp.e2e.launcher.LaunchMonitor;
 
 /**
- * Общий стор последнего результата прогона моста. Связывает панели «Тесты» и
- * «Результаты»: панель-источник публикует найденный/свежеполученный результат,
- * остальные подписчики обновляют дерево/текст через {@link Listener}.
- *
- * <p>Хранит как модель результата, так и источник (файл), чтобы навигация
- * «к файлу/кодy» была возможной и автоматически находила последний результат
- * из каталога обмена при старте EDT.</p>
+ * Потокобезопасный стор последнего результата прогона моста.
+ * Поддерживает синхронное чтение и асинхронную подгрузку в фоновом Job.
  */
 public final class BridgeResultStore {
 
-	/** Слушатель обновления результата (панели подписываются). */
 	public interface Listener {
-		/** Вызывается на UI-потоке при публикации нового результата. */
 		void resultUpdated(BridgeResult result);
 	}
 
 	private static final BridgeResultStore INSTANCE = new BridgeResultStore();
-
 	private final List<Listener> listeners = new ArrayList<>();
 	private volatile BridgeResult current;
 
@@ -41,9 +37,6 @@ public final class BridgeResultStore {
 		return current;
 	}
 
-	/**
-	 * Публикует результат и уведомляет подписчиков (вызывается с UI-потока).
-	 */
 	public void set(BridgeResult result) {
 		this.current = result;
 		List<Listener> copy;
@@ -68,11 +61,30 @@ public final class BridgeResultStore {
 	}
 
 	/**
-	 * Ищет самый свежий {@code bridge-result-*.json} в каталоге обмена моста и
-	 * публикует его. Используется при открытии панели и кнопкой «Обновить» без
-	 * повторного запуска клиента.
-	 *
-	 * @return найденный результат или {@code null}, если нет/не читается
+	 * Асинхронно вычитывает последний результат в фоне, предотвращая подвисание UI.
+	 */
+	public void reloadLatestFromOutDirAsync(Consumer<BridgeResult> onComplete) {
+		Job job = new Job("Specter: чтение последнего отчёта моста") {
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				BridgeResult result = reloadLatestFromOutDir();
+				Display display = Display.getDefault();
+				if (display != null && !display.isDisposed()) {
+					display.asyncExec(() -> {
+						if (onComplete != null) {
+							onComplete.accept(result);
+						}
+					});
+				}
+				return Status.OK_STATUS;
+			}
+		};
+		job.setSystem(true);
+		job.schedule();
+	}
+
+	/**
+	 * Синхронная вычитка файла. Рекомендуется вызывать только из фоновых Job!
 	 */
 	public BridgeResult reloadLatestFromOutDir() {
 		try {
