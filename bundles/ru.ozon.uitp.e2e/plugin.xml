@@ -18,6 +18,24 @@
             class="ru.ozon.uitp.e2e.handler.RunScenarioHandler">
       </handler>
    </extension>
+   <extension point="org.eclipse.ui.views">
+      <category
+            id="ru.ozon.uitp.e2e.views.category"
+            name="UITP E2E (1C:UIxUnit)">
+      </category>
+      <view
+            id="ru.ozon.uitp.e2e.views.TestsView"
+            category="ru.ozon.uitp.e2e.views.category"
+            name="Тесты"
+            restorable="true">
+      </view>
+      <view
+            id="ru.ozon.uitp.e2e.views.ResultsView"
+            category="ru.ozon.uitp.e2e.views.category"
+            name="Результаты"
+            restorable="true">
+      </view>
+   </extension>
    <extension point="org.eclipse.ui.menus">
       <menuContribution
             locationURI="menu:org.eclipse.ui.main.menu?after=additions">

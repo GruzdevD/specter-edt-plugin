@@ -11,5 +11,9 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.debug.core,
  org.eclipse.debug.ui,
  org.eclipse.ui,
+ org.eclipse.ui.views,
+ org.eclipse.jface,
+ org.eclipse.swt,
+ org.eclipse.ui.ide,
  com._1c.g5.v8.dt.launching.core
 Export-Package: ru.ozon.uitp.e2e.launcher
