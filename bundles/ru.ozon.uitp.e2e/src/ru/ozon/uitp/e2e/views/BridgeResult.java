@@ -25,11 +25,20 @@ public final class BridgeResult {
 	public final List<Step> steps;
 	public final File source;
 
-	private BridgeResult(String runId, String status, List<Step> steps, File source) {
+	public BridgeResult(String runId, String status, List<Step> steps, File source) {
 		this.runId = runId;
 		this.status = status;
 		this.steps = steps == null ? new ArrayList<>() : steps;
 		this.source = source;
+	}
+
+	/**
+	 * Создаёт синтетический результат ошибки (например, сбой компиляции, ошибка запуска, таймаут).
+	 */
+	public static BridgeResult createErrorResult(String runId, String action, String errorDetail) {
+		List<Step> steps = new ArrayList<>();
+		steps.add(new Step("err-1", action == null || action.isEmpty() ? "Execution" : action, "failed", errorDetail));
+		return new BridgeResult(runId == null ? "error" : runId, "failed", steps, null);
 	}
 
 	/** Один шаг (команда) сценария и его исход. */

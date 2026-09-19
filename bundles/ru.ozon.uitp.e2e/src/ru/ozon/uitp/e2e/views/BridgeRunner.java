@@ -62,7 +62,7 @@ public final class BridgeRunner {
 					// Запуск клиента через хелпер
 					ILaunch launch = BridgeLaunchHelper.launchClient("run", monitor);
 					if (launch == null) {
-						return reportError(onError, "Клиент передан на запуск, но ILaunch не найден "
+						return reportError(runId, onError, "Клиент передан на запуск, но ILaunch не найден "
 								+ "(запуск мог не стартовать)");
 					}
 					LaunchMonitor.info("Specter view: тонкий клиент запущен: "
@@ -80,18 +80,18 @@ public final class BridgeRunner {
 					if (result == null) {
 						int exit = LaunchMonitor.exitCodeOf(launch);
 						String reason = exit != Integer.MIN_VALUE
-								? "контролируемый процесс завершился с кодом " + exit
-										+ " без файла результата"
-								: "таймаут ожидания результата моста (" + (BridgeScenario.RESULT_TIMEOUT_MS / 1000) + " сек)";
+								? "Контролируемый процесс 1С завершился аварийно с кодом " + exit
+										+ " до записи файла результата (проверьте синтаксис BSL и журнал регистрации 1С)"
+								: "Таймаут ожидания результата моста (" + (BridgeScenario.RESULT_TIMEOUT_MS / 1000) + " сек). Клиент 1С не вернул ответ.";
 						LaunchMonitor.info("Specter view: результат не получен: " + reason);
-						return reportError(onError, "Результат моста не получен: " + reason);
+						return reportError(runId, onError, reason);
 					}
 					monitor.worked(50);
 
 					String body = LaunchMonitor.readFileSafe(result);
 					BridgeResult br = BridgeResult.parse(body, result);
 					if (br == null) {
-						return reportError(onError, "Результат моста прочитан, но не разобран ("
+						return reportError(runId, onError, "Результат моста прочитан, но не разобран ("
 								+ result.getAbsolutePath() + ")");
 					}
 					LaunchMonitor.info("Specter view: мост завершился status=" + br.status
@@ -107,7 +107,7 @@ public final class BridgeRunner {
 					monitor.worked(15);
 					return Status.OK_STATUS;
 				} catch (CoreException e) {
-					return reportError(onError, "Не удалось запустить клиент АУФ: " + e.getMessage());
+					return reportError(runId, onError, "Не удалось запустить клиент АУФ: " + e.getMessage());
 				} finally {
 					monitor.done();
 				}
@@ -117,8 +117,12 @@ public final class BridgeRunner {
 		job.schedule();
 	}
 
-	private static IStatus reportError(final ErrorCallback onError, final String message) {
+	private static IStatus reportError(final String runId, final ErrorCallback onError, final String message) {
 		dispatchToUI(() -> {
+			// Публикуем синтетический FAILED результат в BridgeResultStore, чтобы панель Результаты мгновенно отобразила ошибку
+			BridgeResult errResult = BridgeResult.createErrorResult(runId, "Ошибка выполнения", message);
+			BridgeResultStore.get().set(errResult);
+
 			if (onError != null) {
 				onError.onError(message);
 			}
