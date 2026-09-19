@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Catalog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="5d2f4cb3-c351-4f99-b031-7d224872f647">
+  <producedTypes>
+    <objectType typeId="bd584779-2ff1-49a7-94cd-8c2e6c3312d4" valueTypeId="049e2699-89bb-48ef-a05f-45ffe1038897"/>
+    <refType typeId="703a7903-608c-457f-86a0-e9197b6d417c" valueTypeId="31f521a1-d325-4a47-a274-d2afdee88831"/>
+    <selectionType typeId="821cbcb2-59b6-4019-ab8b-f0fe54cd62de" valueTypeId="8bf5775e-1f28-45e1-b5d5-c6f212f459c0"/>
+    <listType typeId="b166a9b5-0e69-4b2f-a948-285b5ccc5e43" valueTypeId="f6d298af-4bcc-4d8c-bb36-31e869b3d907"/>
+    <managerType typeId="89fb61c4-f7ad-4a2a-a7e0-45678e7fceb4" valueTypeId="49121ccc-e24f-4db1-bd59-9007bd722b66"/>
+  </producedTypes>
+  <name>Контрагенты</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:CatalogExtension"/>
+  <useStandardCommands>true</useStandardCommands>
+  <checkUnique>true</checkUnique>
+  <forms uuid="6f56612d-6fb9-45db-994e-e345081179ec">
+    <name>ФормаСписка</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFormExtension">
+      <form>Extended</form>
+    </extension>
+  </forms>
+  <forms uuid="cad28b8e-cff8-4e65-bec3-edc41e1dfbf5">
+    <name>ФормаЭлемента</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFormExtension">
+      <form>Extended</form>
+    </extension>
+  </forms>
+</mdclass:Catalog>

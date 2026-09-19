@@ -89,7 +89,8 @@ mvn -f pom.xml clean verify -T 1C
 
 - **build.yml** — сборка на push/PR (проверка компиляции).
 - **release.yml** — по тегу `v*`: проставляет версию, собирает, кладёт
-  `UITP-EDT.v<ver>.zip` в GitHub Release.
+  `UITP-EDT.v<ver>.zip` (update-site плагина) **и** `UITP-EXTENSION.afm.OZON_UI.v<ver>.zip`
+  (дистрибутив BSL-расширения) в GitHub Release.
 - **deploy-update-site.yml** — при публикации Release деплоит update-site на
   GitHub Pages (тот самый URL для Install New Software).
 
@@ -105,6 +106,9 @@ bundles/ru.ozon.uitp.e2e/          сама OSGi-обёртка плагина (
 features/ru.ozon.uitp.e2e.feature/ feature (p2-контейнер)
 repositories/ru.ozon.uitp.e2e.repository/ eclipse-repository (update-site) + category.xml
 targets/default/default.target     target platform (публичный p2 1С + Eclipse 4.30)
+extension/afm.OZON_UI/             BSL-расширение 1С (живой мост на реальном UI + тестовые
+                                   наборы). Единый источник afm.OZON_UI; версия общая с
+                                   плагином (тег v*). В релизе — UITP-EXTENSION.afm.OZON_UI.v*.zip
 ```
 
 ## Лицензия

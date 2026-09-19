@@ -60,6 +60,20 @@ jobs:
           cd repositories/ru.ozon.uitp.e2e.repository/target/repository
           zip -r "$GITHUB_WORKSPACE/UITP-EDT.v${{ steps.version.outputs.version }}.zip" .
 
+      - name: Package extension archive (afm.OZON_UI)
+        # Расширение 1С afm.OZON_UI (BSL-мост + UI-наборы) распространяется вместе с
+        # плагином. Единая версия: <version> в Configuration.mdo расширения = версия
+        # тега v*. Исходник-источник живёт в этом репо (extension/afm.OZON_UI/src).
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          STAGE="$GITHUB_WORKSPACE/.stage/afm.OZON_UI"
+          mkdir -p "$STAGE"
+          cp -R "$GITHUB_WORKSPACE/extension/afm.OZON_UI/src" "$STAGE/src"
+          sed -i "s|<version>[^<]*</version>|<version>${VERSION}</version>|" \
+            "$STAGE/src/Configuration/Configuration.mdo"
+          (cd "$STAGE" && zip -q -r "$GITHUB_WORKSPACE/UITP-EXTENSION.afm.OZON_UI.v${VERSION}.zip" .)
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -71,5 +85,9 @@ jobs:
 
             Установка через UI EDT: **Help → Install New Software → Work with:**
             `https://gruzdevd.github.io/specter-edt-plugin/` → «Next» → Next → «Restart Now».
+
+            В дистрибутив входит BSL-расширение **afm.OZON_UI** (`UITP-EXTENSION.afm.OZON_UI.v*.zip`):
+            живой мост команд на реальном UI 1С + тестовые наборы (см. `extension/afm.OZON_UI/`).
           files: |
             UITP-EDT.v*.zip
+            UITP-EXTENSION.afm.OZON_UI.v*.zip
