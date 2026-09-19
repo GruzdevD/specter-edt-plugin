@@ -3,6 +3,10 @@ package ru.ozon.uitp.e2e.converter;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -16,9 +20,11 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
@@ -29,14 +35,18 @@ import ru.ozon.uitp.e2e.Activator;
 /**
  * Диалоговое окно Eclipse для выбора и конвертации распознанных тестов Vanessa Automation
  * в новые программные модули расширения 1C:EDT.
- * Позволяет указывать и выбирать произвольный каталог тестов непосредственно в диалоге.
+ * Позволяет выбирать целевой проект расширения из текущего Workspace или задавать произвольный каталог.
  */
 public class VanessaConvertDialog extends TitleAreaDialog {
 
 	private final VanessaConversionManager manager = new VanessaConversionManager();
 	private List<VanessaScenario> scenarios = new ArrayList<>();
+	private final List<IProject> workspaceProjects = new ArrayList<>();
+
 	private CheckboxTableViewer tableViewer;
 	private Text pathText;
+	private Combo projectCombo;
+	private Text projectPathText;
 	private Text previewText;
 	private Label statusLabel;
 
@@ -49,7 +59,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 	public void create() {
 		super.create();
 		setTitle("Конвертация тестов Vanessa Automation в модули СП_Тестирование");
-		setMessage("Укажите каталог со сценариями .feature и выберите тесты для преобразования в BSL модули (1 тест = 1 CommonModule)");
+		setMessage("Укажите каталог тестов .feature, выберите целевой проект расширения EDT и сценарии для создания BSL-модулей");
 	}
 
 	@Override
@@ -62,17 +72,16 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		layout.marginHeight = 15;
 		container.setLayout(layout);
 
-		// 1. Поле пути к тестам Ванессы (редактируемое + кнопка Обзор)
+		// 1. Поле пути к тестам Ванессы (редактируемое + кнопка Обзор + Сканировать)
 		Label pathLabel = new Label(container, SWT.NONE);
 		pathLabel.setText("Каталог тестов Vanessa:");
 
 		pathText = new Text(container, SWT.BORDER);
 		pathText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-		pathText.setMessage("Укажите путь к папке с .feature файлами...");
+		pathText.setMessage("Укажите путь к папке со сценариями .feature...");
 		String configuredPath = Activator.getVanessaTestsPath();
 		pathText.setText(configuredPath != null ? configuredPath : "");
 
-		// Запуск сканирования по нажатию Enter в поле ввода пути
 		pathText.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {
@@ -108,7 +117,10 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 			}
 		});
 
-		// 2. Список найденных тестов (Таблица с чекбоксами)
+		// 2. Секция выбора целевого проекта расширения EDT
+		createTargetProjectSection(container);
+
+		// 3. Список найденных тестов (Таблица с чекбоксами)
 		Label listLabel = new Label(container, SWT.NONE);
 		listLabel.setText("Обнаруженные тесты Vanessa Automation:");
 		GridData listLabelData = new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1);
@@ -118,7 +130,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 		GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1);
-		tableData.heightHint = 180;
+		tableData.heightHint = 160;
 		table.setLayoutData(tableData);
 
 		TableColumn colCheck = new TableColumn(table, SWT.NONE);
@@ -127,11 +139,11 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 
 		TableColumn colFeature = new TableColumn(table, SWT.LEFT);
 		colFeature.setText("Функционал (.feature)");
-		colFeature.setWidth(180);
+		colFeature.setWidth(170);
 
 		TableColumn colScenario = new TableColumn(table, SWT.LEFT);
 		colScenario.setText("Сценарий");
-		colScenario.setWidth(220);
+		colScenario.setWidth(210);
 
 		TableColumn colModule = new TableColumn(table, SWT.LEFT);
 		colModule.setText("Целевой CommonModule");
@@ -145,7 +157,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		tableViewer.setContentProvider(ArrayContentProvider.getInstance());
 		tableViewer.setLabelProvider(new ScenarioLabelProvider());
 
-		// 3. Кнопки Выбрать все / Снять все
+		// 4. Кнопки Выбрать все / Снять все
 		Composite btnBar = new Composite(container, SWT.NONE);
 		btnBar.setLayout(new GridLayout(3, false));
 		btnBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1));
@@ -174,14 +186,14 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		statusLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 		statusLabel.setText("Готов к сканированию");
 
-		// 4. Предпросмотр генерируемого BSL кода
+		// 5. Предпросмотр генерируемого BSL кода
 		Label previewLabel = new Label(container, SWT.NONE);
 		previewLabel.setText("Предпросмотр генерируемого BSL кода (СП_Тестирование):");
 		previewLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1));
 
 		previewText = new Text(container, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL | SWT.READ_ONLY);
 		GridData previewData = new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1);
-		previewData.heightHint = 120;
+		previewData.heightHint = 110;
 		previewText.setLayoutData(previewData);
 		previewText.setText("// Выберите тест из списка выше для предпросмотра структуры BSL-модуля");
 
@@ -201,6 +213,107 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		performScan();
 
 		return area;
+	}
+
+	private void createTargetProjectSection(Composite parent) {
+		Group projectGroup = new Group(parent, SWT.NONE);
+		projectGroup.setText("Целевой проект расширения 1C:EDT (куда добавлять модули)");
+		GridData groupData = new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1);
+		projectGroup.setLayoutData(groupData);
+		GridLayout groupLayout = new GridLayout(3, false);
+		groupLayout.marginWidth = 10;
+		groupLayout.marginHeight = 8;
+		projectGroup.setLayout(groupLayout);
+
+		Label comboLabel = new Label(projectGroup, SWT.NONE);
+		comboLabel.setText("Проект Workspace:");
+
+		projectCombo = new Combo(projectGroup, SWT.READ_ONLY | SWT.DROP_DOWN);
+		projectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
+
+		Label rootLabel = new Label(projectGroup, SWT.NONE);
+		rootLabel.setText("Каталог проекта:");
+
+		projectPathText = new Text(projectGroup, SWT.BORDER);
+		projectPathText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+		projectPathText.setMessage("Корневая папка проекта расширения 1С (содержащая src/CommonModules)...");
+
+		Button browseProjBtn = new Button(projectGroup, SWT.PUSH);
+		browseProjBtn.setText("Обзор проекта...");
+		browseProjBtn.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				DirectoryDialog dd = new DirectoryDialog(getShell(), SWT.OPEN);
+				dd.setText("Выберите каталог проекта расширения 1C:EDT");
+				String cur = projectPathText.getText().trim();
+				if (!cur.isEmpty() && new File(cur).exists()) {
+					dd.setFilterPath(cur);
+				}
+				String selected = dd.open();
+				if (selected != null && !selected.trim().isEmpty()) {
+					projectPathText.setText(selected.trim());
+				}
+			}
+		});
+
+		// Заполняем список открытых проектов Workspace
+		populateWorkspaceProjects();
+
+		projectCombo.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				int idx = projectCombo.getSelectionIndex();
+				if (idx >= 0 && idx < workspaceProjects.size()) {
+					IProject proj = workspaceProjects.get(idx);
+					if (proj.getLocation() != null) {
+						projectPathText.setText(proj.getLocation().toOSString());
+					}
+				}
+			}
+		});
+	}
+
+	private void populateWorkspaceProjects() {
+		workspaceProjects.clear();
+		projectCombo.removeAll();
+
+		int preferredIndex = -1;
+		try {
+			IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+			if (projects != null) {
+				for (IProject p : projects) {
+					if (p.isOpen()) {
+						workspaceProjects.add(p);
+						String name = p.getName();
+						projectCombo.add(name);
+
+						// Ищем проект с расширением СП_Тестирование или аналогичным
+						String lower = name.toLowerCase();
+						if (lower.contains("сп_") || lower.contains("тестирован") || lower.contains("extension") || lower.contains("расширен")) {
+							if (preferredIndex == -1) {
+								preferredIndex = workspaceProjects.size() - 1;
+							}
+						}
+					}
+				}
+			}
+		} catch (Throwable t) {
+			Activator.logError("Не удалось получить проекты Workspace Eclipse", t);
+		}
+
+		if (!workspaceProjects.isEmpty()) {
+			if (preferredIndex == -1) {
+				preferredIndex = 0;
+			}
+			projectCombo.select(preferredIndex);
+			IProject selected = workspaceProjects.get(preferredIndex);
+			if (selected.getLocation() != null) {
+				projectPathText.setText(selected.getLocation().toOSString());
+			}
+		} else {
+			projectCombo.add("[В Workspace нет открытых проектов - укажите путь ниже]");
+			projectCombo.select(0);
+		}
 	}
 
 	private void performScan() {
@@ -249,6 +362,24 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 			return;
 		}
 
+		String targetProjectPath = projectPathText != null ? projectPathText.getText().trim() : "";
+		if (targetProjectPath.isEmpty()) {
+			MessageDialog.openError(getShell(), "Ошибка выбора проекта", 
+					"Не указан каталог целевого проекта расширения 1C:EDT.\n"
+					+ "Выберите проект из списка Workspace или укажите путь к папке проекта на диске.");
+			return;
+		}
+
+		File projectRoot = new File(targetProjectPath);
+		if (!projectRoot.exists()) {
+			boolean create = MessageDialog.openQuestion(getShell(), "Создание каталога", 
+					"Каталог проекта не существует:\n" + targetProjectPath + "\n\nСоздать его автоматически?");
+			if (!create) {
+				return;
+			}
+			projectRoot.mkdirs();
+		}
+
 		List<VanessaScenario> toConvert = new ArrayList<>();
 		for (Object obj : checkedElements) {
 			if (obj instanceof VanessaScenario) {
@@ -259,11 +390,27 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		}
 
 		try {
-			File projectRoot = new File("extension/СП_Тестирование");
 			int count = manager.convertSelectedScenarios(toConvert, projectRoot);
+
+			// Принудительно обновляем ресурсы Workspace в Eclipse/1C:EDT для отображения новых модулей в дереве
+			try {
+				int selectedIdx = projectCombo != null ? projectCombo.getSelectionIndex() : -1;
+				if (selectedIdx >= 0 && selectedIdx < workspaceProjects.size()) {
+					IProject proj = workspaceProjects.get(selectedIdx);
+					if (proj.isOpen()) {
+						proj.refreshLocal(IResource.DEPTH_INFINITE, new NullProgressMonitor());
+					}
+				}
+				ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, new NullProgressMonitor());
+			} catch (Throwable t) {
+				Activator.logError("Предупреждение при обновлении Workspace", t);
+			}
+
 			MessageDialog.openInformation(getShell(), "Успешная конвертация",
-					"Сконвертировано " + count + " тестов Vanessa в общие модули расширения СП_Тестирование!\n"
-					+ "Модули добавлены в дерево проекта и зарегистрированы в Configuration.mdo.");
+					"Сконвертировано " + count + " тестов Vanessa в общие модули расширения СП_Тестирование!\n\n"
+					+ "Целевой проект: " + projectRoot.getAbsolutePath() + "\n"
+					+ "Папка модулей: " + new File(projectRoot, "src/CommonModules").getAbsolutePath() + "\n\n"
+					+ "Дерево проекта 1C:EDT автоматически обновлено.");
 			super.okPressed();
 		} catch (Exception e) {
 			MessageDialog.openError(getShell(), "Ошибка конвертации", "Не удалось завершить конвертацию: " + e.getMessage());
@@ -292,4 +439,5 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		}
 	}
 }
+
 

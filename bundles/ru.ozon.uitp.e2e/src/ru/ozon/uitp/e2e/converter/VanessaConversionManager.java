@@ -69,17 +69,25 @@ public class VanessaConversionManager {
 	 * Конвертирует выбранные сценарии в общие модули расширения 1С (CommonModules).
 	 *
 	 * @param scenarios список сценариев
-	 * @param extensionProjectRoot корень проекта расширения 1С (где src/CommonModules)
+	 * @param extensionProjectRoot корень проекта расширения 1С (где src/CommonModules или CommonModules)
 	 * @return количество успешно созданных модулей
 	 */
 	public int convertSelectedScenarios(List<VanessaScenario> scenarios, File extensionProjectRoot) throws IOException {
+		if (extensionProjectRoot == null) {
+			throw new IOException("Не указан каталог целевого проекта расширения 1С:EDT.");
+		}
+
+		if (!extensionProjectRoot.exists()) {
+			extensionProjectRoot.mkdirs();
+		}
+
 		int convertedCount = 0;
-		File commonModulesDir = new File(extensionProjectRoot, "src/CommonModules");
+		File commonModulesDir = resolveCommonModulesDir(extensionProjectRoot);
 		if (!commonModulesDir.exists()) {
 			commonModulesDir.mkdirs();
 		}
 
-		File configMdoFile = new File(extensionProjectRoot, "src/Configuration/Configuration.mdo");
+		File configMdoFile = resolveConfigurationMdoFile(extensionProjectRoot);
 		List<String> newModuleNames = new ArrayList<>();
 
 		for (VanessaScenario scenario : scenarios) {
@@ -107,12 +115,35 @@ public class VanessaConversionManager {
 			convertedCount++;
 		}
 
-		// 3. Регистрируем созданные модули в Configuration.mdo
-		if (configMdoFile.exists() && !newModuleNames.isEmpty()) {
+		// 3. Регистрируем созданные модули в Configuration.mdo если файл конфигурации найден
+		if (configMdoFile != null && configMdoFile.exists() && !newModuleNames.isEmpty()) {
 			registerModulesInConfiguration(configMdoFile, newModuleNames);
 		}
 
 		return convertedCount;
+	}
+
+	private File resolveCommonModulesDir(File projectRoot) {
+		File srcCommonModules = new File(projectRoot, "src/CommonModules");
+		if (srcCommonModules.exists()) {
+			return srcCommonModules;
+		}
+		File directCommonModules = new File(projectRoot, "CommonModules");
+		if (directCommonModules.exists()) {
+			return directCommonModules;
+		}
+		// По умолчанию для 1C:EDT используем src/CommonModules
+		return srcCommonModules;
+	}
+
+	private File resolveConfigurationMdoFile(File projectRoot) {
+		File f1 = new File(projectRoot, "src/Configuration/Configuration.mdo");
+		if (f1.exists()) return f1;
+		File f2 = new File(projectRoot, "Configuration/Configuration.mdo");
+		if (f2.exists()) return f2;
+		File f3 = new File(projectRoot, "src/Configuration.mdo");
+		if (f3.exists()) return f3;
+		return f1;
 	}
 
 	private void registerModulesInConfiguration(File configMdoFile, List<String> moduleNames) {
