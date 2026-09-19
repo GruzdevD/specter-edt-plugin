@@ -35,7 +35,7 @@ interface VanessaConverterPanelProps {
 const WORKSPACE_PROJECTS = [
   { id: 'sp_test', name: 'СП_Тестирование (расширение)', path: 'c:/workspace/edt/СП_Тестирование' },
   { id: 'erp_ext', name: 'ERP_E2E_Tests (расширение)', path: 'c:/workspace/edt/ERP_E2E_Tests' },
-  { id: 'custom', name: '[Указать свой путь к проекту на диске...]', path: '' }
+  { id: 'trade_mgmt', name: 'УправлениеТорговлей_Тесты (расширение)', path: 'c:/workspace/edt/УправлениеТорговлей_Тесты' }
 ];
 
 export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
@@ -46,7 +46,6 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
 }) => {
   const [currentPath, setCurrentPath] = useState<string>(vanessaPath);
   const [selectedProject, setSelectedProject] = useState<string>(WORKSPACE_PROJECTS[0].id);
-  const [projectPath, setProjectPath] = useState<string>(WORKSPACE_PROJECTS[0].path);
   const [tests, setTests] = useState<VanessaTestItem[]>(INITIAL_VANESSA_TESTS);
   const [selectedIds, setSelectedIds] = useState<string[]>(INITIAL_VANESSA_TESTS.map(t => t.id));
   const [activeTestId, setActiveTestId] = useState<string>(INITIAL_VANESSA_TESTS[0].id);
@@ -59,6 +58,7 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
   const [convertedCount, setConvertedCount] = useState(0);
   const [copied, setCopied] = useState(false);
 
+  const currentProject = WORKSPACE_PROJECTS.find(p => p.id === selectedProject) || WORKSPACE_PROJECTS[0];
   const activeTest = tests.find(t => t.id === activeTestId) || tests[0];
 
   // Extract all unique tags
@@ -232,8 +232,8 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
           </div>
         </div>
 
-        {/* 2. Target EDT Extension Project row */}
-        <div className={`p-3 rounded-lg border flex flex-col gap-2 text-xs ${
+        {/* 2. Target EDT Extension Project row (automatically resolved from selected workspace project) */}
+        <div className={`p-3 rounded-lg border flex flex-col gap-1.5 text-xs ${
           theme === 'dark' ? 'bg-[#1e1e1e] border-[#3c3c3c]' : 'bg-slate-50/90 border-slate-200'
         }`}>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -245,14 +245,7 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
             <div className="flex-1">
               <select
                 value={selectedProject}
-                onChange={(e) => {
-                  const projId = e.target.value;
-                  setSelectedProject(projId);
-                  const found = WORKSPACE_PROJECTS.find(p => p.id === projId);
-                  if (found && found.path) {
-                    setProjectPath(found.path);
-                  }
-                }}
+                onChange={(e) => setSelectedProject(e.target.value)}
                 className={`w-full px-3 py-1.5 text-xs font-semibold rounded-md border outline-hidden transition-all ${
                   theme === 'dark'
                     ? 'bg-[#252526] border-[#4c4c4c] text-slate-200 focus:border-indigo-500'
@@ -264,38 +257,13 @@ export const VanessaConverterPanel: React.FC<VanessaConverterPanelProps> = ({
                 ))}
               </select>
             </div>
-
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={projectPath}
-                onChange={(e) => setProjectPath(e.target.value)}
-                placeholder="Каталог проекта расширения (где src/CommonModules)..."
-                className={`w-full px-3 py-1.5 text-xs font-mono rounded-md border outline-hidden transition-all ${
-                  theme === 'dark'
-                    ? 'bg-[#252526] border-[#4c4c4c] text-slate-200 focus:border-indigo-500'
-                    : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500'
-                }`}
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => setProjectPath('c:/workspace/edt/СП_Тестирование')}
-                title="Выбрать каталог проекта в проводнике"
-                className={`px-2.5 py-1.5 rounded-md text-xs font-semibold border flex items-center gap-1 transition-colors ${
-                  theme === 'dark'
-                    ? 'bg-[#2d2d2d] hover:bg-[#3c3c3c] border-[#4c4c4c] text-slate-200'
-                    : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
-                }`}
-              >
-                <FolderPlus className="w-3.5 h-3.5 text-purple-500" />
-                <span>Обзор проекта...</span>
-              </button>
-            </div>
           </div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 pl-0.5">
-            💡 Модули будут записаны в <code className="font-mono text-purple-600 dark:text-purple-400">{projectPath || 'src/CommonModules'}/src/CommonModules</code> и зарегистрированы в <code className="font-mono text-purple-600 dark:text-purple-400">Configuration.mdo</code> с немедленным автообновлением дерева EDT.
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 pl-0.5 flex items-center gap-1.5 flex-wrap">
+            <span>💡 Каталог расширения:</span>
+            <code className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-semibold">
+              {currentProject.path}/src/CommonModules
+            </code>
+            <span className="text-slate-400 dark:text-slate-500">• регистрация в Configuration.mdo</span>
           </div>
         </div>
       </div>

@@ -46,7 +46,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 	private CheckboxTableViewer tableViewer;
 	private Text pathText;
 	private Combo projectCombo;
-	private Text projectPathText;
+	private Label projectLocationLabel;
 	private Text previewText;
 	private Label statusLabel;
 
@@ -217,44 +217,26 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 
 	private void createTargetProjectSection(Composite parent) {
 		Group projectGroup = new Group(parent, SWT.NONE);
-		projectGroup.setText("Целевой проект расширения 1C:EDT (куда добавлять модули)");
+		projectGroup.setText("Целевой проект расширения 1C:EDT");
 		GridData groupData = new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1);
 		projectGroup.setLayoutData(groupData);
-		GridLayout groupLayout = new GridLayout(3, false);
+		GridLayout groupLayout = new GridLayout(2, false);
 		groupLayout.marginWidth = 10;
 		groupLayout.marginHeight = 8;
 		projectGroup.setLayout(groupLayout);
 
 		Label comboLabel = new Label(projectGroup, SWT.NONE);
-		comboLabel.setText("Проект Workspace:");
+		comboLabel.setText("Проект расширения:");
 
 		projectCombo = new Combo(projectGroup, SWT.READ_ONLY | SWT.DROP_DOWN);
-		projectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
+		projectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-		Label rootLabel = new Label(projectGroup, SWT.NONE);
-		rootLabel.setText("Каталог проекта:");
+		Label locHintLabel = new Label(projectGroup, SWT.NONE);
+		locHintLabel.setText("Расположение:");
 
-		projectPathText = new Text(projectGroup, SWT.BORDER);
-		projectPathText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-		projectPathText.setMessage("Корневая папка проекта расширения 1С (содержащая src/CommonModules)...");
-
-		Button browseProjBtn = new Button(projectGroup, SWT.PUSH);
-		browseProjBtn.setText("Обзор проекта...");
-		browseProjBtn.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				DirectoryDialog dd = new DirectoryDialog(getShell(), SWT.OPEN);
-				dd.setText("Выберите каталог проекта расширения 1C:EDT");
-				String cur = projectPathText.getText().trim();
-				if (!cur.isEmpty() && new File(cur).exists()) {
-					dd.setFilterPath(cur);
-				}
-				String selected = dd.open();
-				if (selected != null && !selected.trim().isEmpty()) {
-					projectPathText.setText(selected.trim());
-				}
-			}
-		});
+		projectLocationLabel = new Label(projectGroup, SWT.NONE);
+		projectLocationLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+		projectLocationLabel.setText("Определяется автоматически...");
 
 		// Заполняем список открытых проектов Workspace
 		populateWorkspaceProjects();
@@ -262,15 +244,23 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		projectCombo.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				int idx = projectCombo.getSelectionIndex();
-				if (idx >= 0 && idx < workspaceProjects.size()) {
-					IProject proj = workspaceProjects.get(idx);
-					if (proj.getLocation() != null) {
-						projectPathText.setText(proj.getLocation().toOSString());
-					}
-				}
+				updateProjectLocationHint();
 			}
 		});
+	}
+
+	private void updateProjectLocationHint() {
+		int idx = projectCombo.getSelectionIndex();
+		if (idx >= 0 && idx < workspaceProjects.size()) {
+			IProject proj = workspaceProjects.get(idx);
+			if (proj.getLocation() != null) {
+				projectLocationLabel.setText(proj.getLocation().toOSString() + " (src/CommonModules)");
+			} else {
+				projectLocationLabel.setText(proj.getFullPath().toOSString());
+			}
+		} else {
+			projectLocationLabel.setText("—");
+		}
 	}
 
 	private void populateWorkspaceProjects() {
@@ -306,13 +296,11 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 				preferredIndex = 0;
 			}
 			projectCombo.select(preferredIndex);
-			IProject selected = workspaceProjects.get(preferredIndex);
-			if (selected.getLocation() != null) {
-				projectPathText.setText(selected.getLocation().toOSString());
-			}
+			updateProjectLocationHint();
 		} else {
-			projectCombo.add("[В Workspace нет открытых проектов - укажите путь ниже]");
+			projectCombo.add("[В Workspace нет открытых проектов расширений 1С]");
 			projectCombo.select(0);
+			projectLocationLabel.setText("Откройте проект расширения 1С в EDT");
 		}
 	}
 
@@ -362,22 +350,26 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 			return;
 		}
 
-		String targetProjectPath = projectPathText != null ? projectPathText.getText().trim() : "";
-		if (targetProjectPath.isEmpty()) {
+		int selectedIdx = projectCombo != null ? projectCombo.getSelectionIndex() : -1;
+		if (selectedIdx < 0 || selectedIdx >= workspaceProjects.size()) {
 			MessageDialog.openError(getShell(), "Ошибка выбора проекта", 
-					"Не указан каталог целевого проекта расширения 1C:EDT.\n"
-					+ "Выберите проект из списка Workspace или укажите путь к папке проекта на диске.");
+					"Не выбран целевой проект расширения из списка Workspace Eclipse.\n"
+					+ "Пожалуйста, откройте проект расширения 1C:EDT в рабочей области.");
 			return;
 		}
 
-		File projectRoot = new File(targetProjectPath);
+		IProject selectedProject = workspaceProjects.get(selectedIdx);
+		if (selectedProject.getLocation() == null) {
+			MessageDialog.openError(getShell(), "Ошибка выбора проекта", 
+					"Не удалось определить физический каталог проекта: " + selectedProject.getName());
+			return;
+		}
+
+		File projectRoot = selectedProject.getLocation().toFile();
 		if (!projectRoot.exists()) {
-			boolean create = MessageDialog.openQuestion(getShell(), "Создание каталога", 
-					"Каталог проекта не существует:\n" + targetProjectPath + "\n\nСоздать его автоматически?");
-			if (!create) {
-				return;
-			}
-			projectRoot.mkdirs();
+			MessageDialog.openError(getShell(), "Ошибка каталога проекта", 
+					"Каталог проекта не существует на диске:\n" + projectRoot.getAbsolutePath());
+			return;
 		}
 
 		List<VanessaScenario> toConvert = new ArrayList<>();
@@ -394,12 +386,8 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 
 			// Принудительно обновляем ресурсы Workspace в Eclipse/1C:EDT для отображения новых модулей в дереве
 			try {
-				int selectedIdx = projectCombo != null ? projectCombo.getSelectionIndex() : -1;
-				if (selectedIdx >= 0 && selectedIdx < workspaceProjects.size()) {
-					IProject proj = workspaceProjects.get(selectedIdx);
-					if (proj.isOpen()) {
-						proj.refreshLocal(IResource.DEPTH_INFINITE, new NullProgressMonitor());
-					}
+				if (selectedProject.isOpen()) {
+					selectedProject.refreshLocal(IResource.DEPTH_INFINITE, new NullProgressMonitor());
 				}
 				ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, new NullProgressMonitor());
 			} catch (Throwable t) {
@@ -408,7 +396,7 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 
 			MessageDialog.openInformation(getShell(), "Успешная конвертация",
 					"Сконвертировано " + count + " тестов Vanessa в общие модули расширения СП_Тестирование!\n\n"
-					+ "Целевой проект: " + projectRoot.getAbsolutePath() + "\n"
+					+ "Целевой проект: " + selectedProject.getName() + " (" + projectRoot.getAbsolutePath() + ")\n"
 					+ "Папка модулей: " + new File(projectRoot, "src/CommonModules").getAbsolutePath() + "\n\n"
 					+ "Дерево проекта 1C:EDT автоматически обновлено.");
 			super.okPressed();
