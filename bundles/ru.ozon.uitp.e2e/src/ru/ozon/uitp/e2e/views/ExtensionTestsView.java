@@ -214,6 +214,13 @@ public class ExtensionTestsView extends ViewPart {
 
 			while ((line = reader.readLine()) != null) {
 				lineNum++;
+				String trimmed = line.trim();
+
+				// Пропускаем пустые строки и комментарии (но проверяем аннотации)
+				if (trimmed.isEmpty()) {
+					continue;
+				}
+
 				if (TEST_ANNOTATION_PATTERN.matcher(line).matches()) {
 					hasTestAnnotation = true;
 					continue;
@@ -225,12 +232,14 @@ public class ExtensionTestsView extends ViewPart {
 					boolean isExport = line.contains("Экспорт") || line.contains("Export")
 							|| line.toLowerCase().contains("экспорт") || line.toLowerCase().contains("export");
 
-					if (hasTestAnnotation || isExport || isTestProcName(procName)) {
+					// YAxUnit / Specter строгий критерий: тест должен иметь аннотацию &Тест/&Test ИЛИ начинаться с префикса теста (Тест_/Test_)
+					// Исключаем случайные экспортные методы вспомогательных процедур
+					if (isExport && (hasTestAnnotation || isTestProcName(procName))) {
 						result.add(new BslTestMarkerManager.TestMethodInfo(procName, lineNum));
 					}
 					hasTestAnnotation = false;
 				} else {
-					if (!line.trim().isEmpty() && !line.trim().startsWith("//")) {
+					if (!trimmed.startsWith("//") && !trimmed.startsWith("&")) {
 						hasTestAnnotation = false;
 					}
 				}
