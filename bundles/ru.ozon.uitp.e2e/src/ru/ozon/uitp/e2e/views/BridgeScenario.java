@@ -34,4 +34,25 @@ public final class BridgeScenario {
 				+ "{\"id\":\"c7\",\"action\":\"click\",\"target\":\"Закрыть\",\"kind\":\"command\"}"
 				+ "]}";
 	}
+
+	/**
+	 * JSON-тело командного файла для запуска конкретного тестового набора (и
+	 * опционально одного теста внутри него) через движок {@code OZON_UI_Тестирование}.
+	 *
+	 * @param runId      runId этого прогона
+	 * @param moduleName имя BSL-модуля набора (например {@code OZON_UI_Тесты_Контрагенты})
+	 * @param testName   имя конкретного теста набора (может быть empty = весь набор)
+	 * @return JSON-тело {@code {runId, commands:[{action:"runSet", target, test?}]}}
+	 */
+	public static String runSetJson(String runId, String moduleName, String testName) {
+		String target = moduleName == null ? "" : moduleName;
+		String cmd;
+		if (testName == null || testName.isEmpty()) {
+			cmd = "{\"id\":\"r1\",\"action\":\"runSet\",\"target\":\"" + target + "\"}";
+		} else {
+			cmd = "{\"id\":\"r1\",\"action\":\"runSet\",\"target\":\"" + target
+					+ "\",\"test\":\"" + testName + "\"}";
+		}
+		return "{\"runId\":\"" + runId + "\",\"commands\":[" + cmd + "]}";
+	}
 }

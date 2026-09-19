@@ -14,26 +14,29 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IPartListener2;
+import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.part.ViewPart;
+
+import com._1c.g5.v8.dt.metadata.mdclass.CommonModule;
 
 import ru.ozon.uitp.e2e.launcher.LaunchMonitor;
 
 /**
- * Панель «Тесты» — дерево прогона моста по образцу панели YAxUnit в EDT.
+ * Панель «Тесты» — дерево моста по образцу панели YAxUnit в EDT.
  *
- * <p>Дерево строится из последнего результата {@code bridge-result-*.json}:
- * корень — сценарий/набор со сводкой (passed/failed, число шагов), дочерние
- * узлы — отдельные команды моста со своими статусами. Панель умеет:
- * <ul>
- *   <li>{@code Запустить мост} — живой прогон сценария на реальном UI 1С в
- *       фоновом Job (см. {@link BridgeRunner}); по завершении результат
- *       публикуется в {@link BridgeResultStore} и обе панели обновляются;</li>
- *   <li>{@code Обновить} — перечитать последний результат из каталога обмена без
- *       повторного запуска клиента;</li>
- *   <li>{@code Развернуть}/{@code Свернуть} — навигация по дереву шагов.</li>
- * </ul>
- * Статус узла окрашивается: {@code passed} — зелёным, {@code failed} — красным.
- * Детали шага показываются подсказкой и в панели «Результаты».</p>
+ * <p>Показывает дерево из последнего результата {@code bridge-result-*.json}
+ * (сценарий/набор → шаги со статусами) и, когда в активном редакторе открыт
+ * тестовый набор (общий модуль {@code OZON_UI_Тесты_*} / {@code УИ_Тесты_*}),
+ * — дополнительный корень набора с его тестами (методами BSL-модуля). Отсюда
+ * набор можно запустить ({@code Запустить набор <имя>}) через мост: движок
+ * {@code OZON_UI_Тестирование} исполняет его и пишет результат в стор — дерево
+ * обновляется автоматически.</p>
+ *
+ * <p>Toolbar: «Запустить мост» (канон R1 — живой UI-сценарий), «Запустить набор»
+ * (активна, когда открыт тестовый набор в редакторе), «Обновить» (перечитать
+ * последний результат), «Развернуть»/«Свернуть». Статусы окрашиваются: passed —
+ * зелёным, failed — красным.</p>
  */
 public class TestsView extends ViewPart {
 
@@ -43,8 +46,29 @@ public class TestsView extends ViewPart {
 	private final BridgeResultStore.Listener storeListener = this::refreshFromResult;
 
 	private TreeViewer viewer;
-	private ScenarioNode root;
-	private ScenarioNode hintRoot;
+	private Action runSetAction;
+
+	// Корни дерева.
+	private RootSetNode setNode;       // активный тестовый набор из редактора (может быть null)
+	private BridgeResult lastResult;   // последний результат моста (может быть null)
+	private String hintText;           // однострочная подсказка (если ничего нет)
+
+	private final IPartListener2 partListener = new IPartListener2() {
+		@Override
+		public void partActivated(IWorkbenchPartReference partRef) {
+			refreshActiveSet();
+		}
+
+		@Override
+		public void partBroughtToTop(IWorkbenchPartReference partRef) {
+			refreshActiveSet();
+		}
+
+		@Override
+		public void partVisible(IWorkbenchPartReference partRef) {
+			refreshActiveSet();
+		}
+	};
 
 	@Override
 	public void createPartControl(Composite parent) {
@@ -57,12 +81,20 @@ public class TestsView extends ViewPart {
 
 		BridgeResultStore.get().addListener(storeListener);
 
-		// При открытии панели — подтянуть последний результат из каталога обмена.
+		// Подписка на смену активного редактора: определяем открытый набор.
+		try {
+			getSite().getPage().addPartListener(partListener);
+		} catch (RuntimeException e) {
+			// страница недоступна — определение набора просто не будет автореагировать
+		}
+
 		BridgeResult br = BridgeResultStore.get().current();
 		if (br == null) {
 			br = BridgeResultStore.get().reloadLatestFromOutDir();
 		}
-		refreshFromResult(br);
+		lastResult = br;
+		refreshActiveSet();
+		rebuild();
 	}
 
 	private void createToolbarActions() {
@@ -73,6 +105,14 @@ public class TestsView extends ViewPart {
 				runScenario();
 			}
 		});
+		runSetAction = new Action("Запустить набор") {
+			@Override
+			public void run() {
+				runActiveSet();
+			}
+		};
+		runSetAction.setEnabled(false);
+		tb.add(runSetAction);
 		tb.add(new Action("Обновить") {
 			@Override
 			public void run() {
@@ -93,44 +133,72 @@ public class TestsView extends ViewPart {
 		});
 	}
 
-	/** Живой прогон сценария моста; результат раскроется в обеих панелях. */
+	/** Живой прогон сценария-канона R1 на реальном слое UI 1С. */
 	private void runScenario() {
-		setHint("Запускаю тонкий клиент АУФ…");
+		setHint("Запускаю тонкий клиент АУФ (сценарий-канон R1)…");
 		BridgeRunner.runAsync(BridgeScenario.commandsJson(LaunchMonitor.newRunId()),
 				r -> setHint("Прогон завершён: " + r.status + ", passed=" + r.passedCount()
 						+ ", failed=" + r.failedCount()),
 				err -> setHint("Ошибка: " + err));
 	}
 
+	/** Запуск конкретного тестового набора (и опц. теста), открытого в редакторе. */
+	private void runActiveSet() {
+		if (setNode == null) {
+			return;
+		}
+		String moduleName = setNode.moduleName;
+		String test = setNode.selectedTest == null ? "" : setNode.selectedTest;
+		String what = test.isEmpty() ? "весь набор" : "тест " + test;
+		setHint("Запускаю набор " + moduleName + " (" + what + ")…");
+		BridgeRunner.runAsync(BridgeScenario.runSetJson(LaunchMonitor.newRunId(), moduleName, test),
+				r -> setHint("Набор " + moduleName + ": " + r.status
+						+ ", passed=" + r.passedCount() + ", failed=" + r.failedCount()),
+				err -> setHint("Ошибка: " + err));
+	}
+
+	/** Определяет активный тестовый набор из редактора и обновляет кнопку. */
+	private void refreshActiveSet() {
+		CommonModule cm = EditorModuleSupport.activeCommonModule(EditorModuleSupport.activeEditor());
+		String name = cm == null ? null : EditorModuleSupport.moduleName(cm);
+		if (name != null && EditorModuleSupport.isTestSetName(name)) {
+			List<String> tests = EditorModuleSupport.testNames(cm);
+			setNode = new RootSetNode(name, tests);
+			if (tests.size() > 0) {
+				setNode.selectedTest = tests.get(0);
+			}
+			runSetAction.setEnabled(true);
+			runSetAction.setToolTipText("Запустить набор " + name);
+		} else {
+			setNode = null;
+			runSetAction.setEnabled(false);
+		}
+		rebuild();
+	}
+
 	private void refreshFromResult(BridgeResult result) {
-		if (viewer == null || viewer.getControl().isDisposed()) {
-			return;
-		}
-		if (result == null || result.status.equals("hint")) {
-			setHint(result == null
-					? "Результат моста не найден. Нажми «Запустить мост» или «Обновить»."
-					: result.status);
-			return;
-		}
-		root = new ScenarioNode(result);
-		hintRoot = null;
-		viewer.setInput(root);
-		viewer.expandAll();
+		lastResult = result;
+		rebuild();
 	}
 
 	private void setHint(String text) {
+		this.hintText = text;
+		rebuild();
+	}
+
+	private void rebuild() {
 		if (viewer == null || viewer.getControl().isDisposed()) {
 			return;
 		}
-		// Отдельный «однострочный» узел-подсказка, не сбивающий последний результат.
-		if (hintRoot == null) {
-			hintRoot = new ScenarioNode(null);
-			hintRoot.hintText = text;
-		} else {
-			hintRoot.hintText = text;
+		boolean hasAny = setNode != null || lastResult != null;
+		if (!hasAny && hintText == null) {
+			hintText = "Ничего не открыто. Нажми «Запустить мост» или открой тестовый набор в редакторе.";
 		}
-		viewer.setInput(hintRoot);
+		viewer.setInput(this);
 		viewer.refresh();
+		if (setNode != null || lastResult != null) {
+			viewer.expandAll();
+		}
 	}
 
 	@Override
@@ -143,6 +211,11 @@ public class TestsView extends ViewPart {
 	@Override
 	public void dispose() {
 		BridgeResultStore.get().removeListener(storeListener);
+		try {
+			getSite().getPage().removePartListener(partListener);
+		} catch (RuntimeException e) {
+			// игнорируем
+		}
 		super.dispose();
 	}
 
@@ -150,31 +223,41 @@ public class TestsView extends ViewPart {
 	// Модель дерева
 	// ---------------------------------------------------------------------
 
-	/** Корневой узел: сценарий/набор со сводкой (или однострочная подсказка). */
-	static final class ScenarioNode {
-		final BridgeResult result;
-		final List<StepNode> children = new ArrayList<>();
-		String hintText;
+	/** Корень: активный тестовый набор из редактора + его тесты. */
+	static final class RootSetNode {
+		final String moduleName;
+		final List<TestNode> tests = new ArrayList<>();
+		String selectedTest;
 
-		ScenarioNode(BridgeResult result) {
-			this.result = result;
-			if (result != null) {
-				for (BridgeResult.Step s : result.steps) {
-					children.add(new StepNode(s));
-				}
+		RootSetNode(String moduleName, List<String> testNames) {
+			this.moduleName = moduleName;
+			for (String t : testNames) {
+				tests.add(new TestNode(t));
 			}
-		}
-
-		boolean isHint() {
-			return result == null;
-		}
-
-		boolean isEmpty() {
-			return result != null && result.steps.isEmpty();
 		}
 	}
 
-	/** Дочерний узел: отдельная команда моста. */
+	static final class TestNode {
+		final String name;
+
+		TestNode(String name) {
+			this.name = name;
+		}
+	}
+
+	static final class RootResultNode {
+		final BridgeResult result;
+		final List<StepNode> steps = new ArrayList<>();
+
+		RootResultNode(BridgeResult result) {
+			this.result = result;
+			for (BridgeResult.Step s : result.steps) {
+				steps.add(new StepNode(s));
+			}
+		}
+	}
+
+	/** Дочерний узел: отдельная команда/шаг моста. */
 	static final class StepNode {
 		final BridgeResult.Step step;
 
@@ -185,32 +268,40 @@ public class TestsView extends ViewPart {
 
 	private static final class NodeContentProvider implements ITreeContentProvider {
 		@Override
+		public Object[] getElements(Object inputElement) {
+			TestsView v = (TestsView) inputElement;
+			List<Object> roots = new ArrayList<>();
+			if (v.setNode != null) {
+				roots.add(v.setNode);
+			}
+			if (v.lastResult != null) {
+				roots.add(new RootResultNode(v.lastResult));
+			}
+			if (roots.isEmpty()) {
+				roots.add(new HintNode(v.hintText == null ? "" : v.hintText));
+			}
+			return roots.toArray();
+		}
+
+		@Override
 		public Object[] getChildren(Object element) {
-			if (element instanceof ScenarioNode) {
-				ScenarioNode n = (ScenarioNode) element;
-				if (n.isHint() || n.isEmpty()) {
-					return new Object[0];
-				}
-				return n.children.toArray();
+			if (element instanceof RootSetNode) {
+				return ((RootSetNode) element).tests.toArray();
+			}
+			if (element instanceof RootResultNode) {
+				return ((RootResultNode) element).steps.toArray();
 			}
 			return new Object[0];
 		}
 
 		@Override
 		public Object getParent(Object element) {
-			return null;
+			return element instanceof HintNode ? null : element;
 		}
 
 		@Override
 		public boolean hasChildren(Object element) {
-			return element instanceof ScenarioNode
-					&& !((ScenarioNode) element).isHint()
-					&& !((ScenarioNode) element).isEmpty();
-		}
-
-		@Override
-		public Object[] getElements(Object inputElement) {
-			return new Object[] { inputElement };
+			return element instanceof RootSetNode || element instanceof RootResultNode;
 		}
 
 		@Override
@@ -218,20 +309,37 @@ public class TestsView extends ViewPart {
 		}
 	}
 
+	static final class HintNode {
+		final String text;
+
+		HintNode(String text) {
+			this.text = text;
+		}
+	}
+
 	private static final class NodeLabelProvider extends LabelProvider implements IColorProvider {
 		private static final Color GREEN = Display.getDefault().getSystemColor(SWT.COLOR_DARK_GREEN);
 		private static final Color RED = Display.getDefault().getSystemColor(SWT.COLOR_RED);
+		private static final Color BLUE = Display.getDefault().getSystemColor(SWT.COLOR_BLUE);
 
 		@Override
 		public String getText(Object element) {
-			if (element instanceof ScenarioNode) {
-				ScenarioNode n = (ScenarioNode) element;
-				if (n.isHint()) {
-					return n.hintText;
-				}
+			if (element instanceof HintNode) {
+				return ((HintNode) element).text;
+			}
+			if (element instanceof RootSetNode) {
+				RootSetNode n = (RootSetNode) element;
+				return "Набор: " + n.moduleName + "   (тестов: " + n.tests.size()
+						+ "; запуск через мост OZON_UI_Тестирование)";
+			}
+			if (element instanceof TestNode) {
+				return "🔬 " + ((TestNode) element).name;
+			}
+			if (element instanceof RootResultNode) {
+				RootResultNode n = (RootResultNode) element;
 				BridgeResult r = n.result;
-				return "Сценарий моста (АУФ) — " + statusText(r.status)
-						+ "  [" + r.passedCount() + " ✓ / " + r.failedCount() + " ✗], шагов: " + r.steps.size();
+				return "Прогон моста — " + statusText(r.status)
+						+ "   [" + r.passedCount() + " ✓ / " + r.failedCount() + " ✗], шагов: " + r.steps.size();
 			}
 			if (element instanceof StepNode) {
 				StepNode n = (StepNode) element;
@@ -242,14 +350,14 @@ public class TestsView extends ViewPart {
 
 		@Override
 		public Color getForeground(Object element) {
+			if (element instanceof RootSetNode) {
+				return BLUE;
+			}
+			if (element instanceof RootResultNode) {
+				return ((RootResultNode) element).result.isFailed() ? RED : GREEN;
+			}
 			if (element instanceof StepNode) {
 				return ((StepNode) element).step.isFailed() ? RED : GREEN;
-			}
-			if (element instanceof ScenarioNode) {
-				ScenarioNode n = (ScenarioNode) element;
-				if (!n.isHint() && n.result != null) {
-					return n.result.isFailed() ? RED : GREEN;
-				}
 			}
 			return null;
 		}
