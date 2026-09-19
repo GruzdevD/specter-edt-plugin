@@ -68,6 +68,6 @@ jobs:
             Малый EDT-плагин запуска UI-моста (кнопка «Запустить сценарий»).
 
             Установка через UI EDT: **Help → Install New Software → Work with:**
-            `https://gruzdevd.github.io/uitp-edt-plugin/` → категория «UITP E2E (EDT)».
+            `https://gruzdevd.github.io/specter-edt-plugin/` → категория «Specter».
           files: |
             UITP-EDT.v*.zip

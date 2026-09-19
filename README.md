@@ -52,7 +52,7 @@
 2. В поле **Work with:** вставьте адрес update-site:
 
    ```
-   https://gruzdevd.github.io/uitp-edt-plugin/
+   https://gruzdevd.github.io/specter-edt-plugin/
    ```
 
    (нажмите Enter — список категорий подгрузится).

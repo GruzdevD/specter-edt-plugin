@@ -54,8 +54,8 @@ jobs:
             <h1>UITP E2E EDT Plugin - Update Site</h1>
             <p>Current version: <strong>${VERSION}</strong></p>
             <p>Use this URL in EDT: <strong>Help &rarr; Install New Software...</strong></p>
-            <pre>https://gruzdevd.github.io/uitp-edt-plugin/</pre>
-            <p><a href="https://github.com/GruzdevD/uitp-edt-plugin">GitHub Repository</a></p>
+            <pre>https://gruzdevd.github.io/specter-edt-plugin/</pre>
+            <p><a href="https://github.com/GruzdevD/specter-edt-plugin">GitHub Repository</a></p>
           </body>
           </html>
           EOF
