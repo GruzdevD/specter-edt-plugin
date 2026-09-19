@@ -109,6 +109,7 @@ public class RunScenarioHandler extends AbstractHandler {
 				+ "{\"id\":\"c3\",\"action\":\"openCard\",\"target\":\"\"},"
 				+ "{\"id\":\"c4\",\"action\":\"setValue\",\"target\":\"ИНН\",\"value\":\"7701234567\"},"
 				+ "{\"id\":\"c5\",\"action\":\"assertValue\",\"target\":\"ИНН\",\"expected\":\"7701234567\"},"
+				+ "{\"id\":\"c5b\",\"action\":\"inspect\",\"target\":\"Форма\"},"
 				+ "{\"id\":\"c6\",\"action\":\"click\",\"target\":\"Записать\"},"
 				+ "{\"id\":\"c7\",\"action\":\"assert\",\"subject\":\"card\",\"target\":\"Форма\",\"property\":\"Модифицированность\",\"expected\":\"Ложь\"},"
 				+ "{\"id\":\"c8\",\"action\":\"click\",\"target\":\"Закрыть\"}"
