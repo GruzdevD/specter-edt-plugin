@@ -64,8 +64,10 @@ public class VanessaToBslConverter {
 	 * опционально в кавычках) + число. Используется в шагах «количество строк <оператор> N»,
 	 * где число стоит голым (вне кавычек) и парсером параметров не извлекается.
 	 */
+	// Допускаем и дробные ожидания («количество строк больше 1,5») — \d+ их отрезал бы и дал
+	// ложноположительное сравнение. Дробь валидна в BSL как операнд (запятая = десятичный разделитель).
 	private static final Pattern TABLE_COUNT_EXPECTED_PATTERN = Pattern.compile(
-			"(?:не равно|больше или равно|меньше или равно|больше|меньше|равно|равен|равняется|>=|<=|>|<|=)[\"']?\\s*(\\d+)",
+			"(?:не равно|больше или равно|меньше или равно|больше|меньше|равно|равен|равняется|>=|<=|>|<|=)[\"']?\\s*(\\d+(?:[.,]\\d+)?)",
 			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
 	/**
@@ -152,6 +154,15 @@ public class VanessaToBslConverter {
 			sb.append("\t\tИсключение\n");
 			sb.append("\t\t\tДлительность = ТекущаяУниверсальнаяДатаВМиллисекундах() - ДатаНачала;\n");
 			sb.append("\t\t\tТекстОшибки = ОписаниеОшибки();\n");
+			// Гарантированная очистка окружения И при падении шага (в 1С нет finally — вызываем
+			// ПослеЗавершенияТеста и в ветке Исключение). Без этого упавший тест оставлял открытые
+			// формы/модальные окна и загрязнял UI-контекст следующего теста в очереди. Собственный
+			// Попытка внутри Исключение гарантирует, что ошибка очистки не замаскирует первопричину.
+			sb.append("\t\t\tПопытка\n");
+			sb.append("\t\t\t\tПослеЗавершенияТеста();\n");
+			sb.append("\t\t\tИсключение\n");
+			sb.append("\t\t\t\t// не маскируем первопричину ошибкой очистки\n");
+			sb.append("\t\t\tКонецПопытки;\n");
 			sb.append("\t\t\tСтатус = ?(СтрНайти(ТекстОшибки, \"ASSERT_FAILED\") > 0, ").append(STATUS_FAILED).append(", ").append(STATUS_ABORTED).append(");\n");
 			sb.append("\t\t\t//@skip-check structure-consructor-too-many-keys\n");
 			sb.append("\t\t\tРезультаты.Добавить(Новый Структура(\n");
@@ -223,7 +234,10 @@ public class VanessaToBslConverter {
 	 * Исключает &lt;server&gt;true&lt;/server&gt; для предотвращения смешения контекстов при работе с формами.
 	 */
 	public String generateMdoMetadata(String moduleName) {
-		String uuid = UUID.randomUUID().toString();
+		// Детерминированный UUID по имени модуля: случайный UUID при каждой конвертации заставлял
+		// EDT считать объект удалённым/созданным (лавинная перестройка индексов/Xtext-кэшей) и
+		// давал конфликт по строке uuid в Git при каждом сохранении Gherkin. Имя-база стабильна.
+		String uuid = UUID.nameUUIDFromBytes(moduleName.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
 		return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				+ "<mdclass:CommonModule xmlns:mdclass=\"http://g5.1c.ru/v8/dt/metadata/mdclass\" uuid=\"" + uuid + "\">\n"
 				+ "  <name>" + moduleName + "</name>\n"
@@ -282,8 +296,10 @@ public class VanessaToBslConverter {
 			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезТаблицы.ok, РезТаблицы.message);\n");
 			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
-			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(Строка(РезТаблицы.Значение) = \"" + escapeBslString(value)
-			   + "\", \"Поле '" + escapeBslString(field) + "' таблицы '" + escapeBslString(table) + "' должно быть равно '" + escapeBslString(value) + "'\");");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(Строка(РезТаблицы.Значение) = Строка(")
+			   .append(bslValueRef(value))
+			   .append("), \"Поле '").append(escapeBslString(field)).append("' таблицы '").append(escapeBslString(table)).append("' должно быть равно '").append(escapeBslString(value)).append("'\");");
 			return b.toString();
 		}
 
@@ -316,7 +332,7 @@ public class VanessaToBslConverter {
 			String field = params.get(1);
 			String value = params.get(2);
 			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
-			b.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначениеЯчейки(Форма, \"").append(escapeBslString(table)).append("\", 0, \"").append(escapeBslString(field)).append("\", \"").append(escapeBslString(value)).append("\");\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначениеЯчейки(Форма, \"").append(escapeBslString(table)).append("\", 0, \"").append(escapeBslString(field)).append("\", ").append(bslValueRef(value)).append(");\n");
 			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
 			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
 			return b.toString();
@@ -930,7 +946,7 @@ public class VanessaToBslConverter {
 			String value = params.size() > 2 ? params.get(2) : "";
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			bsl.append("\tРезДействия = СП_ДействияКлиент.УстановитьФильтрСписка(Форма, \"").append(escapeBslString(listName))
-			   .append("\", \"").append(escapeBslString(field)).append("\", \"").append(escapeBslString(value)).append("\");\n");
+			   .append("\", \"").append(escapeBslString(field)).append("\", ").append(bslValueRef(value)).append(");\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
 			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
 			return bsl.toString();
@@ -1098,7 +1114,7 @@ public class VanessaToBslConverter {
 			String fieldValue = params.size() > 1 ? params.get(1) : "";
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			bsl.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначение(Форма, \"").append(escapeBslString(fieldName))
-			   .append("\", \"").append(escapeBslString(fieldValue)).append("\");\n");
+			   .append("\", ").append(bslValueRef(fieldValue)).append(");\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
 			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
 			return bsl.toString();
@@ -1110,7 +1126,7 @@ public class VanessaToBslConverter {
 			String fieldValue = params.size() > 1 ? params.get(1) : "Истина";
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			bsl.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначение(Форма, \"").append(escapeBslString(fieldName))
-			   .append("\", \"").append(escapeBslString(fieldValue)).append("\");\n");
+			   .append("\", ").append(bslValueRef(fieldValue)).append(");\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
 			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
 			return bsl.toString();
@@ -1134,7 +1150,7 @@ public class VanessaToBslConverter {
 			String fieldValue = params.size() > 1 ? params.get(1) : "";
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			bsl.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначение(Форма, \"").append(escapeBslString(fieldName))
-			   .append("\", \"").append(escapeBslString(fieldValue)).append("\");\n");
+			   .append("\", ").append(bslValueRef(fieldValue)).append(");\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
 			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
 			return bsl.toString();
@@ -1280,8 +1296,8 @@ public class VanessaToBslConverter {
 			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезПоля.ok, РезПоля.message);\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
-			bsl.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(\"" + escapeBslString(expectedValue)
-			   + "\", РезПоля.Значение, \"Поле '" + escapeBslString(fieldName) + "' содержит ожидаемые данные\");");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(").append(bslValueRef(expectedValue))
+			   .append(", РезПоля.Значение, \"Поле '").append(escapeBslString(fieldName)).append("' содержит ожидаемые данные\");");
 			return bsl.toString();
 		}
 
@@ -1474,6 +1490,26 @@ public class VanessaToBslConverter {
 
 	private String escapeBslString(String str) {
 		if (str == null) return "";
-		return str.replace("\"", "\"\"");
+		// Экранирование двойной кавычки BSL.
+		String res = str.replace("\"", "\"\"");
+		// Многострочный текст: BSL-литерал продолжает строку знаком | в начале каждой следующей
+		// строки. «Сырой» перенос ломал компиляцию («Неоконченная строка»). Нормализуем \r\n и \r
+		// к \n и превращаем каждый перенос в перевод строки + | внутри литерала. Все вызовы
+		// escapeBslString оборачивают результат в кавычки, поэтому "\n|" даёт корректный
+		// многострочный BSL-строковый литерал.
+		res = res.replace("\r\n", "\n").replace('\r', '\n');
+		res = res.replace("\n", "\n|");
+		return res;
+	}
+
+	/**
+	 * Оборачивает текстовое значение шага в рантайм-подстановку переменных сценария
+	 * ($$Имя$$ / $Имя$). Для обычного литерала движок ВычислитьЗначениеСПамятью возвращает
+	 * строку как есть — вызов добавляет нулевую поведенческую дельту, но делает runtime-переменные
+	 * (прочитанный с формы номер заявки и т.п.) применимыми на ВСЕХ шагах: ввод текста, проверка
+	 * полей, фильтры, выбор значений. Без обёртки значение "$НомерЗаявки$" сравнивалось бы дословно.
+	 */
+	private String bslValueRef(String value) {
+		return "СП_ТестированиеКлиент.ВычислитьЗначениеСПамятью(\"" + escapeBslString(value) + "\")";
 	}
 }
