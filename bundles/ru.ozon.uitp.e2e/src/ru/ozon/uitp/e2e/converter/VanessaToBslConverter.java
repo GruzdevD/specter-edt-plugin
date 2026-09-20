@@ -1,6 +1,9 @@
 package ru.ozon.uitp.e2e.converter;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -169,13 +172,9 @@ public class VanessaToBslConverter {
 		// где Форма не используется, даёт неиспользуемую локальную переменную (валидатор).
 		StringBuilder body = new StringBuilder();
 		List<VanessaStep> steps = scenario.getSteps();
-		for (int i = 0; i < steps.size(); i++) {
-			VanessaStep step = steps.get(i);
-			body.append("\t// Шаг ").append(i + 1).append(" (").append(step.getType().getKeyword()).append("): ")
-			    .append(step.getNormalizedText()).append("\n");
-
-			body.append(translateStepToBsl(step)).append("\n\n");
-		}
+		// Раскрытие предметных шагов-макросов (других сценариев фич) происходит на верхнем
+		// уровне; при невозможности честного раскрытия шаг переводится как обычно (бизнес-шаг).
+		body.append(renderBodyTopLevel(steps, 0));
 
 		// Переменная Форма объявляется только если реально используется в сгенерированном
 		// коде (не в комментариях/строках) и не объявлена собственным присваиванием.
@@ -537,6 +536,325 @@ public class VanessaToBslConverter {
 		}
 		// Первое вхождение — присваивание «Форма = …»: объявлять не нужно.
 		return after >= stripped.length() || stripped.charAt(after) != '=';
+	}
+
+	// =========================================================================
+	// РАСКРЫТИЕ МАКРОСОВ (М5): реестр сценариев-фич + инлайн-раскрытие предметных
+	// «бизнес-шагов», чьи реализации — ДРУГИЕ сценарии Vanessa (например «Я создаю заявку с
+	// типом факторинга "Открытый"» раскрывается в шаги сценария 001_СозданиеЗаявки).
+	// =========================================================================
+
+	/**
+	 * Реестр сценариев-макросов (имя → сценарий), построенный VanessaConversionManager
+	 * по ВСЕЙ папке фич. Позволяет конвертеру раскрыть предметный шаг в его UI-реализацию,
+	 * определяя таким образом реальные объекты/формы, которые ожидает тест.
+	 */
+	private Map<String, VanessaScenario> macroRegistry = new HashMap<>();
+
+	/** Предел глубины рекурсии раскрытия макросов (защита от циклов вида A→B→A). */
+	private static final int MAX_MACRO_DEPTH = 12;
+
+	/** Кавычки (одинарные/двойные) для извлечения параметров/значений. */
+	private static final Pattern QUOTED_PARAM_PATTERN = Pattern.compile("[\"']([^\"']*)[\"']");
+
+	public void setMacroRegistry(Map<String, VanessaScenario> registry) {
+		if (registry != null) {
+			this.macroRegistry = registry;
+		}
+	}
+
+	/** Верхнеуровневый рендер тела тестового метода (первичный сценарий), с нумерацией шагов. */
+	private String renderBodyTopLevel(List<VanessaStep> steps, int base) {
+		int[] counter = new int[]{base};
+		String r = renderSteps(steps, java.util.Collections.emptyMap(), 0, true, counter);
+		return r == null ? "" : r;
+	}
+
+	/**
+	 * Рендерит список шагов в BSL, раскрывая макросы и разрешая условные блоки константой.
+	 *
+	 * @param steps     шаги (возможно, уже подставленной ветви макроса)
+	 * @param args      связанные параметры раскрываемого макроса (имя → фактическое значение)
+	 * @param depth     текущая глубина рекурсии раскрытия
+	 * @param topLevel  true для первичного сценария: неразрешаемые конструкции дают комментарий,
+	 *                  а не откат (в макросе же — откат к бизнес-шагу)
+	 * @param counter   счётчик «// Шаг N»
+	 * @return BSL-фрагмент; null, если честно раскрыть невозможно (динамическое условие/цикл)
+	 */
+	private String renderSteps(List<VanessaStep> steps, Map<String, String> args,
+			int depth, boolean topLevel, int[] counter) {
+		if (depth > MAX_MACRO_DEPTH) {
+			return null;
+		}
+		StringBuilder out = new StringBuilder();
+		int i = 0;
+		while (i < steps.size()) {
+			VanessaStep s = steps.get(i);
+			VanessaStep.BlockType bt = s.getBlockType();
+
+			if (bt == VanessaStep.BlockType.IF) {
+				IfBlock blk = collectIfBlock(steps, i);
+				Boolean cond = resolveCondition(s.getNormalizedText(), args);
+				if (cond == null) {
+					if (topLevel) {
+						out.append("\t// (условие не раскрыто константой): ").append(s.getNormalizedText()).append("\n");
+						i = blk.afterEnd;
+					} else {
+						return null;
+					}
+					continue;
+				}
+				List<VanessaStep> branch = cond ? blk.ifBody : blk.elseBody;
+				String rb = renderSteps(branch, args, depth + 1, topLevel, counter);
+				if (rb == null) {
+					return null;
+				}
+				out.append(rb);
+				i = blk.afterEnd;
+				continue;
+			}
+
+			if (bt == VanessaStep.BlockType.WHILE) {
+				if (topLevel) {
+					out.append("\t// (цикл не раскрыт): ").append(s.getNormalizedText()).append("\n");
+					i++;
+					continue;
+				}
+				return null;
+			}
+
+			if (bt == VanessaStep.BlockType.ELSE || bt == VanessaStep.BlockType.END_IF) {
+				// Сиротские маркеры (несбалансированная разметка): пропускаем,
+				// чтобы не уронить рендер списка боковых шагов.
+				i++;
+				continue;
+			}
+
+			// Обычный шаг: сначала пробуем раскрыть как макрос, иначе переводим примитивом.
+			String expanded = expandMacroStep(s, args, depth);
+			if (expanded != null) {
+				out.append(expanded);
+			} else {
+				VanessaStep bound = args.isEmpty() ? s : rebindStep(s, args);
+				counter[0]++;
+				out.append("\t// Шаг ").append(counter[0]).append(" (").append(bound.getType().getKeyword()).append("): ")
+				   .append(bound.getNormalizedText()).append("\n");
+				out.append(translateStepToBsl(bound)).append("\n\n");
+			}
+			i++;
+		}
+		return out.toString();
+	}
+
+	/** Результат разбора условного блока: две ветви и индекс шага после КонецЕсли. */
+	private static class IfBlock {
+		final List<VanessaStep> ifBody = new ArrayList<>();
+		final List<VanessaStep> elseBody = new ArrayList<>();
+		int afterEnd;
+	}
+
+	/** Собирает ветви If/Иначе/КонецЕсли по ванессовской семантике: блок «Если…Тогда»
+	 * НЕ требует явного «КонецЕсли» — он закрывается следующим маркером-условием
+	 * («Если…Тогда», «Пока…Тогда»), «Иначе», «КонецЕсли» либо концом списка. Так в
+	 * фичах УФД ветви «Клиент»/«Дебитор» идут двумя соседними «Если…» без закрытия. */
+	private IfBlock collectIfBlock(List<VanessaStep> steps, int ifIndex) {
+		IfBlock blk = new IfBlock();
+		List<VanessaStep> cur = blk.ifBody;
+		int i = ifIndex + 1;
+		for (; i < steps.size(); i++) {
+			VanessaStep t = steps.get(i);
+			VanessaStep.BlockType bt = t.getBlockType();
+			if (bt == VanessaStep.BlockType.IF || bt == VanessaStep.BlockType.WHILE) {
+				// Следующий маркер-условие закрывает текущий блок (без КонецЕсли).
+				break;
+			}
+			if (bt == VanessaStep.BlockType.ELSE) {
+				cur = blk.elseBody;
+				continue;
+			}
+			if (bt == VanessaStep.BlockType.END_IF) {
+				i++;
+				break;
+			}
+			cur.add(t);
+		}
+		// При завершении по маркеру afterEnd указывает на сам маркер (его обработает
+		// внешний рендер); при «КонецЕсли» — на следующий шаг после него.
+		blk.afterEnd = i;
+		return blk;
+	}
+
+	/**
+	 * Пытается раскрыть шаг как вызов макроса. Возвращает BSL-фрагмент раскрытия,
+	 * либо null, если шаг не является вызовом макроса или раскрытие невозможно.
+	 */
+	private String expandMacroStep(VanessaStep step, Map<String, String> args, int depth) {
+		if (macroRegistry.isEmpty() || step.getBlockType() != VanessaStep.BlockType.NONE) {
+			return null;
+		}
+		String stepText = step.getNormalizedText();
+		for (VanessaScenario sc : macroRegistry.values()) {
+			Map<String, String> bound = matchMacroName(stepText, sc.getScenarioName());
+			if (bound == null) {
+				continue;
+			}
+			Map<String, String> merged = new HashMap<>(args);
+			merged.putAll(bound);
+			int[] counter = new int[]{0};
+			String body = renderSteps(sc.getSteps(), merged, depth + 1, false, counter);
+			if (body == null) {
+				return null;
+			}
+			StringBuilder sb = new StringBuilder();
+			sb.append("\t// --- Макрос раскрыт: ").append(sc.getScenarioName()).append(" ---\n");
+			sb.append(body);
+			sb.append("\t// --- /Макрос ").append(sc.getScenarioName()).append(" ---\n");
+			return sb.toString();
+		}
+		return null;
+	}
+
+	/**
+	 * Сопоставляет текст шага-вызова с именем сценария-макроса (шаблон с параметрами в кавычках).
+	 * Имя сценария «…номером "НомерЗаявки" …» превращается в regex с группой для параметра;
+	 * кавычки вызова дают фактические значения. Возвращает связанные параметры, либо null.
+	 */
+	private Map<String, String> matchMacroName(String stepText, String scenarioName) {
+		if (scenarioName == null || stepText == null) {
+			return null;
+		}
+		// Схлопываем множественные пробелы: в сценариях имена и вызовы часто отличаются
+		// лишь лишними пробелами («нового КА  с типом» vs «нового КА с типом»).
+		String sc = normalizeSpaces(scenarioName);
+		String call = normalizeSpaces(stepText);
+		List<String> placeholders = new ArrayList<>();
+		StringBuilder regex = new StringBuilder("^");
+		Matcher m = QUOTED_PARAM_PATTERN.matcher(sc);
+		int last = 0;
+		while (m.find()) {
+			regex.append(Pattern.quote(sc.substring(last, m.start())));
+			regex.append("(.*?)");
+			placeholders.add(m.group(1).trim());
+			last = m.end();
+		}
+		regex.append(Pattern.quote(sc.substring(last)));
+		regex.append("$");
+		try {
+			Pattern p = Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+			if (!p.matcher(call).matches()) {
+				return null;
+			}
+		} catch (Exception e) {
+			return null;
+		}
+		// Фактические значения из кавычек текста вызова — попарно с именами параметров.
+		List<String> callValues = new ArrayList<>();
+		Matcher cm = QUOTED_PARAM_PATTERN.matcher(call);
+		while (cm.find()) {
+			callValues.add(cm.group(1).trim());
+		}
+		Map<String, String> bound = new HashMap<>();
+		for (int k = 0; k < placeholders.size() && k < callValues.size(); k++) {
+			if (!placeholders.get(k).isEmpty()) {
+				bound.put(placeholders.get(k), callValues.get(k));
+			}
+		}
+		return bound;
+	}
+
+	/**
+	 * Разрешает условие блока «Если …» константой по известным параметрам.
+	 * Пример: Если '"[ТипКА]" = "Клиент"' Тогда → значение параметра ТипКА == "Клиент".
+	 * Возвращает Boolean, либо null, если условие динамическое (неразрешимо константой).
+	 */
+	private Boolean resolveCondition(String condText, Map<String, String> args) {
+		if (condText == null) {
+			return null;
+		}
+		// Значения условий обёрнуты в двойные кавычки (даже внутри одинарной обёртки):
+		// '"[ТипКА]" = "Клиент"' → ["[ТипКА]", "Клиент"]. Одинарные кавычки служат внешней
+		// обёрткой всего выражения и значением не являются.
+		List<String> quoted = extractQuoted(condText, '"');
+		if (quoted.size() < 2) {
+			quoted = extractQuoted(condText, '\'');
+		}
+		if (quoted.size() < 2) {
+			// Непарного сравнения нет — это динамическое условие (напр. «если в таблице есть строка»).
+			return null;
+		}
+		boolean negate = condText.contains("<>") || containsWord(condText, "не равно")
+				|| containsWord(condText, "не равен");
+		String left = deref(quoted.get(0), args);
+		String right = deref(quoted.get(1), args);
+		boolean eq = left != null && left.equalsIgnoreCase(right);
+		return negate ? !eq : eq;
+	}
+
+	/** Схлопывает множественные пробелы и обрезает края. */
+	private String normalizeSpaces(String s) {
+		if (s == null) {
+			return "";
+		}
+		return s.replaceAll("\\s+", " ").trim();
+	}
+
+	/** Извлекает значения, обёрнутые указанной кавычкой (не вложенные). */
+	private List<String> extractQuoted(String text, char q) {
+		List<String> out = new ArrayList<>();
+		if (text == null) {
+			return out;
+		}
+		Matcher m = Pattern.compile(Pattern.quote(String.valueOf(q)) + "([^" + q + "]*)" + Pattern.quote(String.valueOf(q)))
+				.matcher(text);
+		while (m.find()) {
+			out.add(m.group(1).trim());
+		}
+		return out;
+	}
+
+	private boolean containsWord(String text, String word) {
+		return text != null && Pattern.compile("(?ui)" + Pattern.quote(word)).matcher(text).find();
+	}
+
+	/** Раскрывает [ИмяПараметра] и значение в фактическое значение из args. */
+	private String deref(String value, Map<String, String> args) {
+		if (value == null) {
+			return null;
+		}
+		String t = value.trim();
+		if (t.startsWith("[") && t.endsWith("]")) {
+			String key = t.substring(1, t.length() - 1).trim();
+			if (args.containsKey(key)) {
+				return args.get(key);
+			}
+		}
+		return t;
+	}
+
+	/** Подставляет параметры [Имя] в текст (шага, параметра или строки таблицы). */
+	private String substituteParams(String text, Map<String, String> args) {
+		if (text == null || args == null || args.isEmpty()) {
+			return text;
+		}
+		String out = text;
+		for (Map.Entry<String, String> e : args.entrySet()) {
+			out = out.replace("[" + e.getKey() + "]", e.getValue());
+		}
+		return out;
+	}
+
+	/** Клонирует шаг с подстановкой параметров в текст, параметры и табличные строки. */
+	private VanessaStep rebindStep(VanessaStep s, Map<String, String> args) {
+		String newText = substituteParams(s.getNormalizedText(), args);
+		VanessaStep copy = new VanessaStep(s.getType(), newText, s.getLineNumber());
+		for (String p : s.getParameters()) {
+			copy.addParameter(substituteParams(p, args));
+		}
+		for (String r : s.getTableRows()) {
+			copy.addTableRow(substituteParams(r, args));
+		}
+		copy.setBlockType(s.getBlockType());
+		return copy;
 	}
 
 	/**

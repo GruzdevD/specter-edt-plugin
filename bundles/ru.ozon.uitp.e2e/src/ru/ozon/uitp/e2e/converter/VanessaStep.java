@@ -26,12 +26,27 @@ public class VanessaStep {
 		}
 	}
 
+	/**
+	 * Вид блочного маркера в сценарии (для раскрытия макросов на уровне конвертера).
+	 * Обычные шаги имеют NONE. Маркеры Если/Иначе/КонецЕсли/Пока не являются
+	 * действиями — это структурная разметка, которую сохраняет парсер, чтобы
+	 * конвертер мог разрешить условную ветвь константой (значение параметра макроса).
+	 */
+	public enum BlockType {
+		NONE,
+		IF,
+		ELSE,
+		END_IF,
+		WHILE
+	}
+
 	private StepType type;
 	private String rawText;
 	private String normalizedText;
 	private List<String> parameters = new ArrayList<>();
 	private List<String> tableRows = new ArrayList<>();
 	private int lineNumber;
+	private BlockType blockType = BlockType.NONE;
 
 	public VanessaStep(StepType type, String rawText, int lineNumber) {
 		this.type = type;
@@ -74,5 +89,13 @@ public class VanessaStep {
 
 	public void addTableRow(String row) {
 		this.tableRows.add(row);
+	}
+
+	public BlockType getBlockType() {
+		return blockType;
+	}
+
+	public void setBlockType(BlockType blockType) {
+		this.blockType = blockType;
 	}
 }

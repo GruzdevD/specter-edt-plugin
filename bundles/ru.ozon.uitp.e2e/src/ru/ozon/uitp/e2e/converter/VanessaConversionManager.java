@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import ru.ozon.uitp.e2e.Activator;
 
@@ -96,6 +97,18 @@ public class VanessaConversionManager {
 		// поэтому два разных сценария могут дать ОДИНАКОВУЮ цель — второй модуль
 		// тогда перезаписал бы первый. Дедуплицируем в рамках прогона.
 		Set<String> usedModuleNames = new HashSet<>();
+
+		// Реестр макросов: имя сценария → сценарий. Позволяет конвертеру раскрывать
+		// предметные «бизнес-шаги», чьи реализации — другие сценарии папки фич, инлайн
+		// (определяя реальные объекты/формы). Сценарий матчится по имени-шаблону с параметрами.
+		Map<String, VanessaScenario> macroRegistry = new java.util.HashMap<>();
+		for (VanessaScenario reg : scenarios) {
+			String key = reg.getScenarioName() == null ? "" : reg.getScenarioName().toLowerCase().trim();
+			if (!key.isEmpty()) {
+				macroRegistry.put(key, reg);
+			}
+		}
+		converter.setMacroRegistry(macroRegistry);
 
 		for (VanessaScenario scenario : scenarios) {
 			if (!scenario.isSelected()) {

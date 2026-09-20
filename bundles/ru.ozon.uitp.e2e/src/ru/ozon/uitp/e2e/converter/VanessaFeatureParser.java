@@ -95,6 +95,14 @@ public class VanessaFeatureParser {
 							VanessaStep lastStep = currentScenario.getSteps().get(currentScenario.getSteps().size() - 1);
 							lastStep.addTableRow(trimmed);
 						}
+					} else {
+						// Блочные маркеры условной логики (Если/Иначе/КонецЕсли/Пока).
+						// Сохраняем как структурную разметку, чтобы конвертер мог раскрыть
+						// макрос: разрешить условие константой по значению параметра вызова.
+						VanessaStep.BlockType block = detectBlock(trimmed);
+						if (block != VanessaStep.BlockType.NONE) {
+							currentScenario.addStep(makeBlockStep(block, trimmed, lineNum));
+						}
 					}
 				}
 			}
@@ -122,6 +130,36 @@ public class VanessaFeatureParser {
 			default:
 				return VanessaStep.StepType.AND;
 		}
+	}
+
+	/**
+	 * Распознаёт блочный маркер в строке (Если ... Тогда / Иначе / КонецЕсли / Пока ... Тогда).
+	 * Возвращает NONE, если строка не является структурным маркером.
+	 */
+	private VanessaStep.BlockType detectBlock(String trimmed) {
+		String t = trimmed.toLowerCase();
+		if (t.startsWith("если ") || t.startsWith("если'") || t.startsWith("\"если")) {
+			return VanessaStep.BlockType.IF;
+		}
+		if (t.startsWith("иначе") || t.startsWith("иначе если")) {
+			return VanessaStep.BlockType.ELSE;
+		}
+		if (t.startsWith("конец если") || trimmed.equalsIgnoreCase("КонецЕсли")) {
+			return VanessaStep.BlockType.END_IF;
+		}
+		if (t.startsWith("пока ") && t.contains("тогда")) {
+			return VanessaStep.BlockType.WHILE;
+		}
+		return VanessaStep.BlockType.NONE;
+	}
+
+	/**
+	 * Создаёт шаг-маркер блока с типом AND (для совместимости) и блоковой разметкой.
+	 */
+	private VanessaStep makeBlockStep(VanessaStep.BlockType block, String text, int lineNum) {
+		VanessaStep step = new VanessaStep(VanessaStep.StepType.AND, text, lineNum);
+		step.setBlockType(block);
+		return step;
 	}
 
 	private void extractParameters(String text, VanessaStep step) {
