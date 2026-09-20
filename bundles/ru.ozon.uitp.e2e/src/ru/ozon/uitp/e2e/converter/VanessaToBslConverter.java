@@ -484,6 +484,32 @@ public class VanessaToBslConverter {
 	/** Кавычки (одинарные/двойные) для извлечения параметров/значений. */
 	private static final Pattern QUOTED_PARAM_PATTERN = Pattern.compile("[\"']([^\"']*)[\"']");
 
+	/**
+	 * Рантайм-условие по полю формы: «поле 'Статус' равно 'Новый'»,
+	 * «поле "Сумма" > 10» (число без кавычек) и т.п.
+	 * Группы: 1 — имя поля, 2 — оператор, 3 — значение в двойных кавычках,
+	 *        4 — значение в одинарных кавычках, 5 — числовое значение без кавычек.
+	 */
+	private static final Pattern FIELD_CONDITION_PATTERN = Pattern.compile(
+			"(?ui)поле\\s+[\"']([^\"']+)[\"']\\s*(равно|равняется|не\\s+равно|неравно|не\\s+равен|не\\s+равняется|<>|==|=|больше\\s+или\\s+равно|больше|>|меньше\\s+или\\s+равно|меньше|<|>=|<=)\\s*(?:\"([^\"]*)\"|'([^']*)'|([+-]?\\d+(?:[.,]\\d+)?))");
+
+	/** Индентация: добавляет префикс к каждой непустой строке фрагмента (для вложенных блоков). */
+	private static String indentLines(String fragment, String prefix) {
+		if (fragment == null || fragment.isEmpty()) {
+			return "";
+		}
+		String[] lines = fragment.split("\n", -1);
+		StringBuilder sb = new StringBuilder();
+		for (String line : lines) {
+			if (!line.trim().isEmpty()) {
+				sb.append(prefix);
+			}
+			sb.append(line).append("\n");
+		}
+		return sb.toString();
+	}
+
+
 	public void setMacroRegistry(Map<String, VanessaScenario> registry) {
 		if (registry != null) {
 			this.macroRegistry = registry;
@@ -521,7 +547,20 @@ public class VanessaToBslConverter {
 
 			if (bt == VanessaStep.BlockType.IF) {
 				IfBlock blk = collectIfBlock(steps, i);
-				Boolean cond = resolveCondition(s.getNormalizedText(), args);
+				String ifText = s.getNormalizedText();
+				// Полевая проверка («поле 'Статус' равно 'Новый'») — РАНЬШЕ статического
+				// разрешения: resolveCondition по одинарным кавычкам неверно берет первые
+				// два токена («поле», «Статус») и возвращает ложную константу. Такие условия
+				// всегда динамические → честный оператор Если (вложенность даёт рекурсия).
+				if (ifText != null && FIELD_CONDITION_PATTERN.matcher(ifText).find()) {
+					String dyn = tryRenderDynamicIf(s, blk, args, depth, topLevel, counter);
+					if (dyn != null) {
+						out.append(dyn);
+						i = blk.afterEnd;
+						continue;
+					}
+				}
+				Boolean cond = resolveCondition(ifText, args);
 				if (cond == null) {
 					if (topLevel) {
 						out.append("\t// (условие не раскрыто константой): ").append(s.getNormalizedText()).append("\n");
@@ -609,6 +648,94 @@ public class VanessaToBslConverter {
 		// внешний рендер); при «КонецЕсли» — на следующий шаг после него.
 		blk.afterEnd = i;
 		return blk;
+	}
+
+	/**
+	 * Пытается построить честное рантайм-ветвление по условию, завязанному на поле формы
+	 * («поле 'Статус' равно 'Новый'»). В отличие от статического разрешения константой,
+	 * здесь генерируется реальный оператор {@code Если … Тогда … [Иначе …] КонецЕсли},
+	 * а значение поля считывается с формы через {@code СП_ДействияКлиент.ПолучитьЗначение}.
+	 *
+	 * @return BSL-фрагмент, либо null, если условие не является полевой проверкой (тогда
+	 *         вызывающий применяет прежнюю стратегию — комментарий/откат).
+	 */
+	private String tryRenderDynamicIf(VanessaStep s, IfBlock blk, Map<String, String> args,
+			int depth, boolean topLevel, int[] counter) {
+		String condText = s.getNormalizedText();
+		if (condText == null) {
+			return null;
+		}
+		Matcher m = FIELD_CONDITION_PATTERN.matcher(condText);
+		if (!m.find()) {
+			return null;
+		}
+		String field = m.group(1).trim();
+		String opWord = m.group(2).trim();
+		// Значение: строка в двойных/одинарных кавычках либо число без кавычек.
+		String rawValue = m.group(3) != null ? m.group(3) : (m.group(4) != null ? m.group(4) : m.group(5));
+		String value = deref(rawValue == null ? "" : rawValue.trim(), args);
+
+		StringBuilder bsl = new StringBuilder();
+		bsl.append("\t// Условие (рантайм): ").append(condText).append("\n");
+		bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+		bsl.append("\tРезУсловия = СП_ДействияКлиент.ПолучитьЗначение(Форма, \"").append(escapeBslString(field)).append("\");\n");
+		bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+		bsl.append("\tЕсли РезУсловия.Значение ").append(mapConditionOp(opWord, value)).append(" ").append(valueLiteral(value)).append(" Тогда\n");
+
+		String ifBody = renderSteps(blk.ifBody, args, depth + 1, topLevel, counter);
+		if (ifBody == null) {
+			return null;
+		}
+		bsl.append(indentLines(ifBody, "\t"));
+
+		if (!blk.elseBody.isEmpty()) {
+			String elseBody = renderSteps(blk.elseBody, args, depth + 1, topLevel, counter);
+			if (elseBody == null) {
+				return null;
+			}
+			bsl.append("\tИначе\n");
+			bsl.append(indentLines(elseBody, "\t"));
+		}
+		bsl.append("\tКонецЕсли;\n");
+		return bsl.toString();
+	}
+
+	/** Сопоставляет текстовый оператор условия оператору BSL (=, <>, >, <, >=, <=). */
+	private String mapConditionOp(String opWord, String value) {
+		String o = opWord.toLowerCase();
+		if (o.contains("не равно") || o.contains("неравно") || o.contains("не равен") || o.contains("не равняется") || o.contains("<>")) {
+			return "<>";
+		}
+		if (o.contains("больше или равно") || o.contains(">=") || (o.equals(">") && o.contains("="))) {
+			return ">=";
+		}
+		if (o.contains("меньше или равно") || o.contains("<=") || (o.equals("<") && o.contains("="))) {
+			return "<=";
+		}
+		if (o.contains("больше") || o.contains(">")) {
+			return ">";
+		}
+		if (o.contains("меньше") || o.contains("<")) {
+			return "<";
+		}
+		if (o.contains("равно") || o.contains("равняется") || o.contains("==")) {
+			return "=";
+		}
+		// Опечатка/редкий текст — единичное «равно» намеренно по умолчанию.
+		return "=";
+	}
+
+	/** Значение как BSL-литерал: числа без кавычек, строки — в двойных кавычках. */
+	private String valueLiteral(String value) {
+		String v = value == null ? "" : value.trim();
+		if (v.isEmpty()) {
+			return "\"\"";
+		}
+		// Числовой литерал (целое или десятичное) оставляем без кавычек.
+		if (v.matches("[+-]?\\d+([.,]\\d+)?")) {
+			return v.replace(',', '.');
+		}
+		return "\"" + escapeBslString(v) + "\"";
 	}
 
 	/**
@@ -901,6 +1028,26 @@ public class VanessaToBslConverter {
 			   .append("\", ").append(row).append(", ").append(col).append(");\n");
 			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
 			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезЯчейки.ok, РезЯчейки.message);");
+			return bsl.toString();
+		}
+
+		// --- Сравнение табличного документа с макетом (полноценная работа с ТабДок) ---
+		// Шаги вида «табличный документ '<поле>' соответствует макету '<макет>'»,
+		// «сравнить табличный документ с макетом», «таблица на форме равна макету» →
+		// СП_ДействияКлиент.СравнитьТабличныйДокументСМакетным(Форма, <поле>, <макет>).
+		boolean tabDocStep = text.contains("табличном документ") || text.contains("табличного документа")
+				|| text.contains("табличный документ") || text.contains("таблиц");
+		boolean withLayout = text.contains("макет") || text.contains("макета");
+		boolean layoutComparison = withLayout && (text.contains("равен") || text.contains("равна") || text.contains("равно")
+				|| text.contains("совпада") || text.contains("соответств") || text.contains("сравн"));
+		if (tabDocStep && layoutComparison) {
+			String docField = params.size() > 0 ? params.get(0) : "ТабличныйДокумент";
+			String layout = params.size() > 1 ? params.get(1) : "";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезТабДок = СП_ДействияКлиент.СравнитьТабличныйДокументСМакетным(Форма, \"")
+			   .append(escapeBslString(docField)).append("\", \"").append(escapeBslString(layout)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезТабДок.Совпадение, РезТабДок.message);");
 			return bsl.toString();
 		}
 
