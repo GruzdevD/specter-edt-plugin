@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="b7e10f44-5c1d-4a2e-9c3b-0f8d1e6a4c21">
+  <name>СП_ОбнаружениеТестов</name>
+  <synonym>
+    <key>ru</key>
+    <value>СП: Обнаружение тестов по аннотациям (&Тест)</value>
+  </synonym>
+  <comment>Annotation Discovery: разбор //&Тест-аннотаций из исходника модуля (по образу YaxUnit).</comment>
+  <server>true</server>
+  <externalConnection>true</externalConnection>
+</mdclass:CommonModule>

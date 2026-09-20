@@ -21,7 +21,7 @@
   <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
   <configurationExtensionPurpose>AddOn</configurationExtensionPurpose>
   <scriptVariant>Russian</scriptVariant>
-  <version>0.3.4</version>
+  <version>0.4.0</version>
   <usedMobileApplicationFunctionalities>
     <functionality>
       <use>true</use>
@@ -48,6 +48,11 @@
   <commonModules>CommonModule.СП_ТестированиеКлиент</commonModules>
   <commonModules>CommonModule.СП_Утверждения</commonModules>
   <commonModules>CommonModule.СП_УтвержденияКлиент</commonModules>
+  <commonModules>CommonModule.СП_ОбнаружениеТестов</commonModules>
+  <commonModules>CommonModule.СП_Ожидаем</commonModules>
+  <commonModules>CommonModule.СП_ПроверкиДанныхСервер</commonModules>
+  <commonModules>CommonModule.СП_ВызовСервера</commonModules>
+  <commonModules>CommonModule.СП_ФабрикаДанных</commonModules>
   <dataProcessors>DataProcessor.СП_КонсольТестов</dataProcessors>
   <dataProcessors>DataProcessor.СП_УправлениеФормами</dataProcessors>
 </mdclass:Configuration>

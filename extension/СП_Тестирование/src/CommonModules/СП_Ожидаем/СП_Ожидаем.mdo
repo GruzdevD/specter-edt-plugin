@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="1c8d3e9f-2a4b-4c5d-8e6f-0a1b2c3d4e5f">
+  <name>СП_Ожидаем</name>
+  <synonym>
+    <key>ru</key>
+    <value>СП: Fluent-ассерты (Ожидаем.Что)</value>
+  </synonym>
+  <comment>Fluent-ассерты с дампом фактического значения и авто-сообщением (YaxUnit-style).</comment>
+  <server>true</server>
+  <externalConnection>true</externalConnection>
+</mdclass:CommonModule>
