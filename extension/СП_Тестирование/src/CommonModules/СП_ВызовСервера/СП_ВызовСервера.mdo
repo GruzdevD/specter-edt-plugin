@@ -7,5 +7,5 @@
   </synonym>
   <comment>Прозрачный client->server диспетчер с белым списком модулей и анти-инъекцией имени метода.</comment>
   <server>true</server>
-  <externalConnection>true</externalConnection>
+  <serverCall>true</serverCall>
 </mdclass:CommonModule>

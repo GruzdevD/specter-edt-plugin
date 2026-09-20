@@ -8,4 +8,5 @@
   <comment>ORM-подобная фабрика данных поверх СП_ГенераторДанных с отслеживанием и очисткой созданного.</comment>
   <server>true</server>
   <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
 </mdclass:CommonModule>

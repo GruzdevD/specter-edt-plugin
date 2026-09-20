@@ -8,4 +8,5 @@
   <comment>Серверные data-ассерты с единой сигнатурой {ok,message,value} для моста СП_ВызовСервера.</comment>
   <server>true</server>
   <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
 </mdclass:CommonModule>

@@ -8,4 +8,5 @@
   <comment>Fluent-ассерты с дампом фактического значения и авто-сообщением (YaxUnit-style).</comment>
   <server>true</server>
   <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
 </mdclass:CommonModule>
