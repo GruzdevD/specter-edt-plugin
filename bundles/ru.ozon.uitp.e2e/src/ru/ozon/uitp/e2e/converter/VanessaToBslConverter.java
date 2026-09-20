@@ -54,6 +54,15 @@ public class VanessaToBslConverter {
 	private static final Pattern SECONDS_PATTERN = Pattern.compile("в течение (\\d+) секунд|в течение (\\d+) сек|(\\d+) секунд");
 
 	/**
+	 * Ожидаемое количество строк таблицы: оператор сравнения (русское слово или символ,
+	 * опционально в кавычках) + число. Используется в шагах «количество строк <оператор> N»,
+	 * где число стоит голым (вне кавычек) и парсером параметров не извлекается.
+	 */
+	private static final Pattern TABLE_COUNT_EXPECTED_PATTERN = Pattern.compile(
+			"(?:не равно|больше или равно|меньше или равно|больше|меньше|равно|равен|равняется|>=|<=|>|<|=)[\"']?\\s*(\\d+)",
+			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+
+	/**
 	 * Генерирует BSL-код модуля (Module.bsl) на базе сценария Vanessa,
 	 * строго реализующий контракт клиентского тестового набора СП_Тестирование.
 	 */
@@ -153,21 +162,29 @@ public class VanessaToBslConverter {
 		sb.append("//\n");
 		sb.append("//&Тест\n");
 		sb.append("// @test\n");
-		sb.append("Процедура ").append(testMethodName).append("() Экспорт\n\n");
-		sb.append("\t// Форма сценария (открывается через СП_ТестированиеКлиент.ОткрытьФормуУниверсально)\n");
-		sb.append("\tФорма = Неопределено;\n\n");
+		sb.append("Процедура ").append(testMethodName).append("() Экспорт\n");
 
-		// Трансляция каждого шага сценария
+		// Трансляция каждого шага сценария. Тело собираем отдельно, чтобы решить,
+		// нужна ли переменная Форма: автогенерация пустой «Форма = Неопределено;» в сценариях,
+		// где Форма не используется, даёт неиспользуемую локальную переменную (валидатор).
+		StringBuilder body = new StringBuilder();
 		List<VanessaStep> steps = scenario.getSteps();
 		for (int i = 0; i < steps.size(); i++) {
 			VanessaStep step = steps.get(i);
-			sb.append("\t// Шаг ").append(i + 1).append(" (").append(step.getType().getKeyword()).append("): ")
-			  .append(step.getNormalizedText()).append("\n");
+			body.append("\t// Шаг ").append(i + 1).append(" (").append(step.getType().getKeyword()).append("): ")
+			    .append(step.getNormalizedText()).append("\n");
 
-			String bslStepCode = translateStepToBsl(step);
-			sb.append(bslStepCode).append("\n\n");
+			body.append(translateStepToBsl(step)).append("\n\n");
 		}
 
+		// Переменная Форма объявляется только если реально используется в сгенерированном
+		// коде (не в комментариях/строках) и не объявлена собственным присваиванием.
+		if (needsFormVariable(body.toString())) {
+			sb.append("\t// Форма сценария (открывается через СП_ТестированиеКлиент.ОткрытьФормуУниверсально)\n");
+			sb.append("\tФорма = Неопределено;\n");
+		}
+
+		sb.append("\n").append(body);
 		sb.append("КонецПроцедуры\n\n");
 
 		// Вспомогательные методы жизненного цикла
@@ -341,18 +358,116 @@ public class VanessaToBslConverter {
 			return b.toString();
 		}
 
-		// «количество строк … равно N»
-		if (text.contains("количество строк") && params.size() >= 2) {
-			String expected = params.get(1);
+		// «запоминаю количество строк таблицы X как <переменная>» — сохранение, не проверка.
+		// Идёт ДО блока «количество строк <оператор> N», чтобы текст «запоминаю количество строк»
+		// не ушёл в проверку: здесь параметры = [таблица, переменная].
+		if (text.contains("запоминаю количество строк") && text.contains("как") && params.size() >= 2) {
+			String ownerTable = params.get(0);
+			String var = params.get(1);
 			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
-			b.append("\tКолТаблицы = СП_ДействияКлиент.КоличествоСтрок(Форма, \"").append(escapeBslString(table)).append("\");\n");
+			b.append("\tКолТаблицы = СП_ДействияКлиент.КоличествоСтрок(Форма, \"").append(escapeBslString(ownerTable)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_ТестированиеКлиент.СохранитьВПамять(\"").append(escapeBslString(var)).append("\", КолТаблицы);");
+			return b.toString();
+		}
+
+		// «пока в таблице … количество строк <оператор> N Тогда» — цикл ожидания выполнения условия
+		if (text.contains("пока") && text.contains("тогда") && text.contains("количество строк") && !params.isEmpty()) {
+			String ownerTable = params.get(0);
+			String opWord = params.size() > 1 ? params.get(1) : "";
+			String expected = extractExpectedTableCount(raw);
+			if (expected != null) {
+				String bslOp = mapComparisonToBsl(opWord);
+				b.append("\tПока Истина Цикл\n");
+				b.append("\t\t//@skip-check bsl-legacy-check-string-literal\n");
+				b.append("\t\tКолТаблицы = СП_ДействияКлиент.КоличествоСтрок(Форма, \"").append(escapeBslString(ownerTable)).append("\");\n");
+				b.append("\t\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+				b.append("\t\tЕсли КолТаблицы ").append(bslOp).append(" ").append(expected).append(" Тогда\n");
+				b.append("\t\t\tПрервать;\n");
+				b.append("\t\tКонецЕсли;\n");
+				b.append("\t\tСП_ОжиданияКлиент.Пауза(1);\n");
+				b.append("\tКонецЦикла;");
+				return b.toString();
+			}
+		}
+
+		// «количество строк <оператор> N» — проверка количества строк таблицы.
+		// Оператор («равно», «>», «меньше или равно») приходит в params как слово/символ,
+		// а ожидаемое число — голым (вне кавычек) и парсером не извлекается, поэтому
+		// значение разбираем regex-ом из исходного текста шага; оператор транслируем в BSL.
+		if (text.contains("количество строк") && !params.isEmpty()) {
+			String ownerTable = params.get(0);
+			String opWord = params.size() > 1 ? params.get(1) : "";
+			String expected = extractExpectedTableCount(raw);
+			if (expected == null) {
+				// Количество не распознано — честный TODO вместо битого вызова.
+				return "// TODO (табличный контекст): " + escapeBslString(raw) + "\n"
+					 + "// Не удалось распознать ожидаемое количество строк таблицы.";
+			}
+			String bslOp = mapComparisonToBsl(opWord);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tКолТаблицы = СП_ДействияКлиент.КоличествоСтрок(Форма, \"").append(escapeBslString(ownerTable)).append("\");\n");
 			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
-			b.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(КолТаблицы, ").append(escapeBslString(expected)).append(", \"Количество строк таблицы '" + escapeBslString(table) + "'\");");
+			if ("=".equals(bslOp)) {
+				b.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(КолТаблицы, ").append(expected)
+				   .append(", \"Количество строк таблицы '" + escapeBslString(ownerTable) + "'\");");
+			} else {
+				b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(КолТаблицы ").append(bslOp).append(" ").append(expected)
+				   .append(", \"Количество строк таблицы '" + escapeBslString(ownerTable) + "' должно быть ").append(opWord.trim()).append(" ").append(expected).append("\");");
+			}
 			return b.toString();
 		}
 
 		return null;
+	}
+
+	/**
+	 * Транслирует русское/символьное обозначение сравнения в BSL-оператор.
+	 * Применяется к шагам «количество строк <оператор> N»: оператор приходит
+	 * параметром («равно», «>», «меньше или равно» и т.п.) и раньше вставлялся
+	 * как голый идентификатор, ломая код.
+	 */
+	private static String mapComparisonToBsl(String op) {
+		if (op == null) return "=";
+		String o = op.trim().toLowerCase();
+		switch (o) {
+			case "равно": case "равен": case "равняется": case "=": return "=";
+			case "не равно": case "не равен": case "<>": return "<>";
+			case "больше или равно": case "не меньше": case ">=": return ">=";
+			case "меньше или равно": case "не больше": case "<=": return "<=";
+			case "больше": case ">": return ">";
+			case "меньше": case "<": return "<";
+			default: return "=";
+		}
+	}
+
+	/**
+	 * Извлекает ожидаемое количество строк (число) после оператора сравнения
+	 * из исходного текста шага. Оператор может быть задан как русское слово,
+	 * так и символом («>», «>=»), в кавычках или без; число следует сразу за ним.
+	 * Возвращает строку числа или null, если распознать не удалось.
+	 */
+	private static String extractExpectedTableCount(String raw) {
+		if (raw == null) return null;
+		Matcher m = TABLE_COUNT_EXPECTED_PATTERN.matcher(raw);
+		return m.find() ? m.group(1) : null;
+	}
+
+	/**
+	 * Решает, объявлять ли локальную переменную Форма в начале тестового метода.
+	 * Форму объявляем только если она реально используется в сгенерированном коде
+	 * (вне строковых литералов и комментариев) и не объявлена собственным
+	 * присваиванием «Форма = …» (присваивание само создаёт локальную переменную).
+	 */
+	private static boolean needsFormVariable(String body) {
+		if (body == null || body.isEmpty()) return false;
+		// Убираем строковые литералы и комментарии — Форма в них не считается использованием.
+		String stripped = body.replaceAll("\"([^\"\\\\]|\\\\.)*\"", "");
+		stripped = stripped.replaceAll("//[^\n]*", "");
+		if (!Pattern.compile("\\bФорма\\b").matcher(stripped).find()) return false;
+		boolean hasAssign = Pattern.compile("\\bФорма\\s*=").matcher(stripped).find();
+		return !hasAssign;
 	}
 
 	/**
