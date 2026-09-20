@@ -1,5 +1,7 @@
 package ru.ozon.uitp.e2e.views;
 
+import java.util.List;
+
 /**
  * Единый контур команд сценария моста (канон R1, один UI-сценарий на реальном
  * слое 1С без .epf). Используется кнопкой «Запустить мост» на панели «Тесты» и
@@ -54,5 +56,46 @@ public final class BridgeScenario {
 					+ "\",\"test\":\"" + testName + "\"}";
 		}
 		return "{\"runId\":\"" + runId + "\",\"commands\":[" + cmd + "]}";
+	}
+
+	/** Одна цель запуска (Annotation Discovery): модуль + тест-метод. */
+	public static final class Target {
+		public final String module;
+		public final String method;
+
+		public Target(String module, String method) {
+			this.module = module;
+			this.method = method;
+		}
+	}
+
+	/**
+	 * JSON-тело командного файла с явным списком целей (Annotation Discovery, P0).
+	 *
+	 * <p>Плагин собирает цели парсингом //&Тест/@test в исходниках BSL на build-time
+	 * и передаёт их мосту как {@code targets:[{module, method}]}. Движок
+	 * СП_ТестированиеКлиент.ЗапуститьМодульПоЦелям выполняет их динамически в
+	 * защитном блоке — без контрактных СписокТестов()/ЗапуститьНаборТестов()
+	 * в тестовом модуле.</p>
+	 *
+	 * @param runId   runId этого прогона
+	 * @param targets список целей {module, method}
+	 * @return JSON-тело {@code {runId, targets:[...]}}
+	 */
+	public static String runTargetsJson(String runId, List<Target> targets) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("{\"runId\":\"").append(runId).append("\",\"targets\":[");
+		if (targets != null) {
+			for (int i = 0; i < targets.size(); i++) {
+				if (i > 0) {
+					sb.append(",");
+				}
+				Target t = targets.get(i);
+				sb.append("{\"module\":\"").append(t.module)
+				  .append("\",\"method\":\"").append(t.method).append("\"}");
+			}
+		}
+		sb.append("]}");
+		return sb.toString();
 	}
 }

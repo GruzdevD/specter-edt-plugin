@@ -305,10 +305,18 @@ public final class BslTestMarkerManager {
 
 	/**
 	 * Запуск одного теста из модуля через живой мост СП_Тестирование.
+	 * Annotation Discovery (P0): команда строится по явной цели {module, method},
+	 * а не через контракт ЗапуститьНаборТестов — движок их более не требует.
 	 */
 	public static void runSingleTest(String moduleName, String testName) {
 		String runId = LaunchMonitor.newRunId();
-		String commands = BridgeScenario.runSetJson(runId, moduleName, testName);
+		String commands;
+		if (testName == null || testName.isEmpty()) {
+			commands = BridgeScenario.runSetJson(runId, moduleName, "");
+		} else {
+			commands = BridgeScenario.runTargetsJson(runId,
+					java.util.Collections.singletonList(new BridgeScenario.Target(moduleName, testName)));
+		}
 
 		LaunchMonitor.info("EDT: Запуск теста " + moduleName + "." + (testName.isEmpty() ? "*" : testName) + " runId=" + runId);
 

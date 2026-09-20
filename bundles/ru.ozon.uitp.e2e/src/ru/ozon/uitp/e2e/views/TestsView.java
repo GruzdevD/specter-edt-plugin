@@ -350,7 +350,12 @@ public class TestsView extends ViewPart {
 		setCustomStatus("Запускаю набор " + moduleName + " (" + what + ")…");
 
 		String runId = LaunchMonitor.newRunId();
-		String json = BridgeScenario.runSetJson(runId, moduleName, test);
+		// Annotation Discovery (P0): конкретный тест запускаем по явной цели,
+		// весь набор — с пустым критерием (раннер сам соберёт весь набор).
+		String json = test.isEmpty()
+				? BridgeScenario.runSetJson(runId, moduleName, "")
+				: BridgeScenario.runTargetsJson(runId,
+						java.util.Collections.singletonList(new BridgeScenario.Target(moduleName, test)));
 		LaunchMonitor.info("TestsView: Запуск набора " + moduleName + " runId=" + runId);
 
 		BridgeRunner.runAsync(runId, json,

@@ -43,16 +43,11 @@ import java.util.regex.Pattern;
  */
 public class VanessaToBslConverter {
 
-	// Статусы клиентского раннера (литералы, совпадают с СП_Тестирование.Статус*).
-	private static final String STATUS_PASSED = "\"passed\"";
-	private static final String STATUS_FAILED = "\"failed\"";
-	private static final String STATUS_SKIPPED = "\"skipped\"";
-	private static final String STATUS_ABORTED = "\"aborted\"";
-
-	/** Структура теста в СписокТестов(): Discovery контракта. */
-	private static final String TEST_STRUCT_FIELDS = "Имя, Описание, Теги, Отключен, ПричинаОтключения";
-	/** Структура результата в ЗапуститьНаборТестов(). */
-	private static final String RESULT_STRUCT_FIELDS = "Имя, Статус, Сообщение, ДлительностьМс, События, Ошибка";
+	// Annotation Discovery (P0): состояние контрактного boilerplate устранено —
+	// тесты помечаются //&Тест, статусы результата (passed/failed/aborted/skipped)
+	// вычисляет сам раннер (СП_ТестированиеКлиент / СП_ОбнаружениеТестов), а
+	// структуры Discovery (СписокТестов) и диспетчеризации (ЗапуститьНаборТестов)
+	// больше не генерируются.
 
 	// Допускаем и дробные паузы («в течение 1.5 секунд», «в течение 2,5 сек») — \d+ их не
 	// захватывал бы, а такие таймауты валидны в Gherkin. Дробь позже округляется в extractSeconds.
@@ -97,87 +92,24 @@ public class VanessaToBslConverter {
 
 		sb.append("#Область ПрограммныйИнтерфейс\n\n");
 
-		// 1. Контракт Discovery движка СП_Тестирование
-		sb.append("// Точка обнаружения тестов в наборе движком СП_Тестирование (Discovery).\n");
-		sb.append("//\n");
-		sb.append("//@skip-check doc-comment-collection-item-type\n");
-		sb.append("// Возвращаемое значение:\n");
-		sb.append("//  Массив - структуры тестов набора (Имя, Описание, Теги, Отключен, ПричинаОтключения).\n");
-		sb.append("Функция СписокТестов() Экспорт\n\n");
-		sb.append("\tТесты = Новый Массив;\n");
-		sb.append("\t//@skip-check structure-consructor-too-many-keys\n");
-		sb.append("\tТесты.Добавить(Новый Структура(\n");
-		sb.append("\t\t\"").append(TEST_STRUCT_FIELDS).append("\",\n");
-		sb.append("\t\t\"").append(testMethodName).append("\",\n");
-		sb.append("\t\t\"").append(escapeBslString(scenarioName)).append("\",\n");
-		sb.append("\t\tСлужебный_ПолучитьТегиСценария(),\n");
-		sb.append("\t\t").append(scenario.isSkipped() ? "Истина" : "Ложь").append(",\n");
-		sb.append("\t\t\"").append(escapeBslString(scenario.getSkipReason())).append("\"));\n\n");
-		sb.append("\tВозврат Тесты;\n\n");
-		sb.append("КонецФункции\n\n");
+		// Annotation Discovery (P0): конвертер больше НЕ генерирует контрактные
+		// СписокТестов()/ЗапуститьНаборТестов(). Тесты обнаруживаются по аннотации
+		// //&Тест над экспортной процедурой — плагином EDT (BslTestCollector) на build-time
+		// либо движком СП_ОбнаружениеТестов на рантайме. Это снимает CONTRACT-boilerplate
+		// из каждого сгенерированного модуля и делает его неотличимым от рукописного
+		// YaxUnit-модуля (один файл работает и автоматически, и вручную).
 
-		// 2. Контракт запуска набора тестов клиентским раннером СП_ТестированиеКлиент
-		sb.append("// Главная точка запуска набора клиентским раннером СП_ТестированиеКлиент.\n");
-		sb.append("//\n");
-		sb.append("//@skip-check doc-comment-params-order\n");
-		sb.append("// Параметры:\n");
-		sb.append("//  Критерии - Структура - фильтр запуска: ИмяТеста (необязателен).\n");
-		sb.append("//\n");
-		sb.append("//@skip-check doc-comment-collection-item-type\n");
-		sb.append("// Возвращаемое значение:\n");
-		sb.append("//  Массив - результаты выполненных тестов набора\n");
-		sb.append("//   (Имя, Статус, Сообщение, ДлительностьМс, События, Ошибка).\n");
-		sb.append("Функция ЗапуститьНаборТестов(Критерии = Неопределено) Экспорт\n\n");
-		sb.append("\tРезультаты = Новый Массив;\n");
-		sb.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
-		sb.append("\tИмяТеста = ?(ЗначениеЗаполнено(Критерии) И Критерии.Свойство(\"ИмяТеста\"), Критерии.ИмяТеста, \"\");\n\n");
-		sb.append("\tЕсли ПустаяСтрока(ИмяТеста) ИЛИ ИмяТеста = \"").append(testMethodName).append("\" Тогда\n");
-
-		if (scenario.isSkipped()) {
-			sb.append("\t\t//@skip-check structure-consructor-too-many-keys\n");
-			sb.append("\t\tРезультаты.Добавить(Новый Структура(\n");
-			sb.append("\t\t\t\"").append(RESULT_STRUCT_FIELDS).append("\",\n");
-			sb.append("\t\t\t\"").append(testMethodName).append("\", ").append(STATUS_SKIPPED).append(", ")
-			  .append("\"").append(escapeBslString(scenario.getSkipReason())).append("\", 0, Новый Массив, \"\"));\n");
-		} else {
-			sb.append("\t\tДатаНачала = ТекущаяУниверсальнаяДатаВМиллисекундах();\n");
-			sb.append("\t\tПопытка\n");
-			sb.append("\t\t\tПередЗапускомТеста();\n");
-			sb.append("\t\t\t").append(testMethodName).append("();\n");
-			sb.append("\t\t\tПослеЗавершенияТеста();\n");
-			sb.append("\t\t\tДлительность = ТекущаяУниверсальнаяДатаВМиллисекундах() - ДатаНачала;\n");
-			sb.append("\t\t\t//@skip-check structure-consructor-too-many-keys\n");
-			sb.append("\t\t\tРезультаты.Добавить(Новый Структура(\n");
-			sb.append("\t\t\t\t\"").append(RESULT_STRUCT_FIELDS).append("\",\n");
-			sb.append("\t\t\t\t\"").append(testMethodName).append("\", ").append(STATUS_PASSED)
-			  .append(", \"Тест выполнен успешно\", Длительность, Новый Массив, \"\"));\n");
-			sb.append("\t\tИсключение\n");
-			sb.append("\t\t\tДлительность = ТекущаяУниверсальнаяДатаВМиллисекундах() - ДатаНачала;\n");
-			sb.append("\t\t\tТекстОшибки = ОписаниеОшибки();\n");
-			// Гарантированная очистка окружения И при падении шага (в 1С нет finally — вызываем
-			// ПослеЗавершенияТеста и в ветке Исключение). Без этого упавший тест оставлял открытые
-			// формы/модальные окна и загрязнял UI-контекст следующего теста в очереди. Собственный
-			// Попытка внутри Исключение гарантирует, что ошибка очистки не замаскирует первопричину.
-			sb.append("\t\t\tПопытка\n");
-			sb.append("\t\t\t\tПослеЗавершенияТеста();\n");
-			sb.append("\t\t\tИсключение\n");
-			sb.append("\t\t\t\t// не маскируем первопричину ошибкой очистки\n");
-			sb.append("\t\t\tКонецПопытки;\n");
-			sb.append("\t\t\tСтатус = ?(СтрНайти(ТекстОшибки, \"ASSERT_FAILED\") > 0, ").append(STATUS_FAILED).append(", ").append(STATUS_ABORTED).append(");\n");
-			sb.append("\t\t\t//@skip-check structure-consructor-too-many-keys\n");
-			sb.append("\t\t\tРезультаты.Добавить(Новый Структура(\n");
-			sb.append("\t\t\t\t\"").append(RESULT_STRUCT_FIELDS).append("\",\n");
-			sb.append("\t\t\t\t\"").append(testMethodName).append("\", Статус, ТекстОшибки, Длительность, Новый Массив, ТекстОшибки));\n");
-			sb.append("\t\tКонецПопытки;\n");
-		}
-		sb.append("\tКонецЕсли;\n\n");
-		sb.append("\tВозврат Результаты;\n\n");
-		sb.append("КонецФункции\n\n");
-
-		// 3. Основной тестовый метод
+		// Основной тестовый метод
 		sb.append("// Обработка сценария Vanessa: ").append(sanitizeComment(scenarioName)).append(".\n");
-		sb.append("//\n");
-		sb.append("//&Тест\n");
+		if (scenario.isSkipped()) {
+			sb.append("//&ОтключаемыйТест(\"").append(escapeBslString(scenario.getSkipReason() == null ? "" : scenario.getSkipReason())).append("\")\n");
+		}
+		if (scenario.getTags().isEmpty()) {
+			sb.append("//&Тест(\"").append(escapeBslString(scenarioName)).append("\")\n");
+		} else {
+			sb.append("//&Тест(\"").append(escapeBslString(scenarioName))
+			  .append("\", \"").append(escapeBslString(String.join(",", scenario.getTags()))).append("\")\n");
+		}
 		sb.append("// @test\n");
 		sb.append("Процедура ").append(testMethodName).append("() Экспорт\n");
 
@@ -200,30 +132,6 @@ public class VanessaToBslConverter {
 		sb.append("\n").append(body);
 		sb.append("КонецПроцедуры\n\n");
 
-		// Вспомогательные методы жизненного цикла
-		sb.append("// Подготовка окружения перед выполнением теста.\n");
-		sb.append("Процедура ПередЗапускомТеста() Экспорт\n");
-		sb.append("\t// Очистка или подготовка тестовых данных при необходимости\n");
-		sb.append("КонецПроцедуры\n\n");
-
-		sb.append("// Очистка окружения после завершения теста.\n");
-		sb.append("Процедура ПослеЗавершенияТеста() Экспорт\n");
-		sb.append("\t// Закрытие тестовых окон или удаление временных данных\n");
-		sb.append("КонецПроцедуры\n\n");
-
-		sb.append("#КонецОбласти\n\n");
-
-		sb.append("#Область СлужебныеПроцедурыИФункции\n\n");
-		sb.append("// Возвращает теги сценария для Discovery (СписокТестов).\n");
-		sb.append("// Возвращаемое значение:\n");
-		sb.append("//  Массив из Строка - теги сценария.\n");
-		sb.append("Функция Служебный_ПолучитьТегиСценария()\n\n");
-		sb.append("\tТеги = Новый Массив;\n");
-		for (String tag : scenario.getTags()) {
-			sb.append("\tТеги.Добавить(\"").append(escapeBslString(tag)).append("\");\n");
-		}
-		sb.append("\tВозврат Теги;\n\n");
-		sb.append("КонецФункции\n\n");
 		sb.append("#КонецОбласти\n");
 
 		return sb.toString();

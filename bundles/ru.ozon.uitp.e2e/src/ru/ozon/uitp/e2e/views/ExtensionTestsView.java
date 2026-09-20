@@ -368,7 +368,9 @@ public class ExtensionTestsView extends ViewPart {
 		viewer.refresh(test);
 
 		String runId = LaunchMonitor.newRunId();
-		String json = BridgeScenario.runSetJson(runId, test.parent.moduleName, test.name);
+		// Annotation Discovery (P0): запуск ОДИНОЧНОГО теста по явной цели {module, method}.
+		String json = BridgeScenario.runTargetsJson(runId,
+				java.util.Collections.singletonList(new BridgeScenario.Target(test.parent.moduleName, test.name)));
 		LaunchMonitor.info("ExtensionTestsView: Запуск одиночного теста " + test.parent.moduleName + "." + test.name + " runId=" + runId);
 
 		BridgeRunner.runAsync(runId, json,
@@ -401,7 +403,13 @@ public class ExtensionTestsView extends ViewPart {
 		viewer.refresh(mod);
 
 		String runId = LaunchMonitor.newRunId();
-		String json = BridgeScenario.runSetJson(runId, mod.moduleName, "");
+		// Annotation Discovery (P0): запуск набора — передаём явный список целей {module, method}
+		// по обнаруженным тестам модуля, а не контракт ЗапуститьНаборТестов.
+		java.util.List<BridgeScenario.Target> targets = new java.util.ArrayList<>();
+		for (TestItemNode t : mod.tests) {
+			targets.add(new BridgeScenario.Target(mod.moduleName, t.name));
+		}
+		String json = BridgeScenario.runTargetsJson(runId, targets);
 		LaunchMonitor.info("ExtensionTestsView: Запуск набора " + mod.moduleName + " runId=" + runId);
 
 		final ModuleNode finalMod = mod;
@@ -431,7 +439,15 @@ public class ExtensionTestsView extends ViewPart {
 		viewer.refresh();
 
 		String runId = LaunchMonitor.newRunId();
-		String json = BridgeScenario.commandsJson(runId);
+		// Annotation Discovery (P0): «все тесты расширения» = объединённый список целей
+		// {module, method} по всем обнаруженным модулям.
+		java.util.List<BridgeScenario.Target> targets = new java.util.ArrayList<>();
+		for (ModuleNode m : modules) {
+			for (TestItemNode t : m.tests) {
+				targets.add(new BridgeScenario.Target(m.moduleName, t.name));
+			}
+		}
+		String json = BridgeScenario.runTargetsJson(runId, targets);
 		LaunchMonitor.info("ExtensionTestsView: Запуск всех тестов расширения runId=" + runId);
 
 		BridgeRunner.runAsync(runId, json,
