@@ -8,7 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import ru.ozon.uitp.e2e.Activator;
 
 /**
@@ -89,13 +91,19 @@ public class VanessaConversionManager {
 
 		File configMdoFile = resolveConfigurationMdoFile(extensionProjectRoot);
 		List<String> newModuleNames = new ArrayList<>();
+		// Имена CommonModule уникальны в конфигурации целиком. Имя генерируется
+		// из названия сценария и обрезается до 64 символов (VanessaScenario),
+		// поэтому два разных сценария могут дать ОДИНАКОВУЮ цель — второй модуль
+		// тогда перезаписал бы первый. Дедуплицируем в рамках прогона.
+		Set<String> usedModuleNames = new HashSet<>();
 
 		for (VanessaScenario scenario : scenarios) {
 			if (!scenario.isSelected()) {
 				continue;
 			}
 
-			String moduleName = scenario.getTargetModuleName();
+			String moduleName = ensureUniqueModuleName(scenario.getTargetModuleName(), usedModuleNames);
+			usedModuleNames.add(moduleName);
 			File moduleDir = new File(commonModulesDir, moduleName);
 			if (!moduleDir.exists()) {
 				moduleDir.mkdirs();
@@ -173,6 +181,42 @@ public class VanessaConversionManager {
 		try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
 			writer.write(content);
 		}
+	}
+
+	/**
+	 * Возвращает имя CommonModule, гарантированно не встречавшееся ранее в прогоне.
+	 * При коллизии добавляет числовой суффикс, корректируя base так, чтобы итог
+	 * оставался в пределах 64 символов (ограничение имени метаданных 1С).
+	 */
+	private String ensureUniqueModuleName(String targetName, Set<String> used) {
+		if (used.add(targetName)) {
+			return targetName;
+		}
+		int n = 2;
+		while (true) {
+			String candidate = deriveUniqueName(targetName, n);
+			if (used.add(candidate)) {
+				return candidate;
+			}
+			n++;
+		}
+	}
+
+	private String deriveUniqueName(String targetName, int n) {
+		String suffix = "_Клиент";
+		String base = targetName;
+		if (base.endsWith(suffix)) {
+			base = base.substring(0, base.length() - suffix.length());
+		}
+		String extra = "_" + n;
+		int maxBase = 64 - suffix.length() - extra.length();
+		if (base.length() > maxBase) {
+			base = base.substring(0, maxBase);
+		}
+		while (base.endsWith("_")) {
+			base = base.substring(0, base.length() - 1);
+		}
+		return base + extra + suffix;
 	}
 
 	public VanessaToBslConverter getConverter() {

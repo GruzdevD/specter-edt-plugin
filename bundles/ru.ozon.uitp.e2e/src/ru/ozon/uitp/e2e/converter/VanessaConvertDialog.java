@@ -2,7 +2,9 @@ package ru.ozon.uitp.e2e.converter;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -29,6 +31,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import ru.ozon.uitp.e2e.Activator;
 
@@ -200,9 +203,9 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		table.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				int index = table.getSelectionIndex();
-				if (index >= 0 && index < scenarios.size()) {
-					VanessaScenario selected = scenarios.get(index);
+				TableItem[] sel = table.getSelection();
+				if (sel != null && sel.length == 1 && sel[0].getData() instanceof VanessaScenario) {
+					VanessaScenario selected = (VanessaScenario) sel[0].getData();
 					previewText.setText(manager.getConverter().generateBslModuleCode(selected));
 				}
 				updateSelectedStatus();
@@ -330,15 +333,37 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		}
 
 		scenarios = manager.scanDirectory(dir);
-		tableViewer.setInput(scenarios);
+		tableViewer.setInput(buildGroupedRows(scenarios));
 		tableViewer.setAllChecked(true);
 		updateSelectedStatus();
 	}
 
+	/**
+	 * Строит плоский список строк таблицы, вставляя перед каждой группой сценариев
+	 * одного функционала строку-заголовок FeatureGroup. Это делает длинный список
+	 * тестов управляемым: тесты одной .feature-фичи идут блоком под общим заголовком.
+	 */
+	private List<Object> buildGroupedRows(List<VanessaScenario> scenarios) {
+		List<Object> rows = new ArrayList<>();
+		Map<String, List<VanessaScenario>> groups = new LinkedHashMap<>();
+		for (VanessaScenario s : scenarios) {
+			groups.computeIfAbsent(s.getFeatureName(), k -> new ArrayList<>()).add(s);
+		}
+		for (Map.Entry<String, List<VanessaScenario>> e : groups.entrySet()) {
+			rows.add(new FeatureGroup(e.getKey(), e.getValue().size()));
+			rows.addAll(e.getValue());
+		}
+		return rows;
+	}
+
 	private void updateSelectedStatus() {
-		Object[] checkedElements = tableViewer.getCheckedElements();
 		int total = scenarios.size();
-		int checked = checkedElements.length;
+		int checked = 0;
+		for (Object o : tableViewer.getCheckedElements()) {
+			if (o instanceof VanessaScenario) {
+				checked++;
+			}
+		}
 		statusLabel.setText("Найдено: " + total + " | Выбрано для конвертации: " + checked);
 	}
 
@@ -405,6 +430,19 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 		}
 	}
 
+	/**
+	 * Строка-заголовок группы сценариев одного функционала (.feature).
+	 * В конвертацию не попадает: okPressed фильтрует только VanessaScenario.
+	 */
+	private static class FeatureGroup {
+		final String name;
+		final int count;
+		FeatureGroup(String name, int count) {
+			this.name = name;
+			this.count = count;
+		}
+	}
+
 	private static class ScenarioLabelProvider extends LabelProvider implements ITableLabelProvider {
 		@Override
 		public Image getColumnImage(Object element, int columnIndex) {
@@ -413,6 +451,17 @@ public class VanessaConvertDialog extends TitleAreaDialog {
 
 		@Override
 		public String getColumnText(Object element, int columnIndex) {
+			if (element instanceof FeatureGroup) {
+				FeatureGroup g = (FeatureGroup) element;
+				switch (columnIndex) {
+					case 0: return "";
+					case 1: return g.name;
+					case 2: return "(" + g.count + " сценариев)";
+					case 3: return "";
+					case 4: return String.valueOf(g.count);
+				}
+				return "";
+			}
 			if (element instanceof VanessaScenario) {
 				VanessaScenario sc = (VanessaScenario) element;
 				switch (columnIndex) {
