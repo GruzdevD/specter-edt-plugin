@@ -47,6 +47,7 @@
   <commonModules>CommonModule.СП_Тестирование</commonModules>
   <commonModules>CommonModule.СП_ТестированиеКлиент</commonModules>
   <commonModules>CommonModule.СП_Утверждения</commonModules>
+  <commonModules>CommonModule.СП_УтвержденияКлиент</commonModules>
   <dataProcessors>DataProcessor.СП_КонсольТестов</dataProcessors>
   <dataProcessors>DataProcessor.СП_УправлениеФормами</dataProcessors>
 </mdclass:Configuration>

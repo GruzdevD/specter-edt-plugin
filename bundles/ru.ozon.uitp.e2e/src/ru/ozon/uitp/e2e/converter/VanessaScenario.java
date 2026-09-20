@@ -37,7 +37,7 @@ public class VanessaScenario {
 
 	public static String generateDefaultModuleName(String scenarioName) {
 		if (scenarioName == null || scenarioName.trim().isEmpty()) {
-			return "СП_Тест_Сценарий";
+			return "СП_Тест_Сценарий_Клиент";
 		}
 		// Очищаем от спецсимволов для валидного идентификатора BSL
 		String cleaned = scenarioName.replaceAll("[^a-zA-Zа-яА-Я0-9_]", "_")
@@ -51,9 +51,20 @@ public class VanessaScenario {
 		if (!cleaned.startsWith("СП_Тест_")) {
 			cleaned = "СП_Тест_" + cleaned;
 		}
-		// Ограничиваем длину имени модуля в метаданных 1C
-		if (cleaned.length() > 64) {
-			cleaned = cleaned.substring(0, 64);
+		// Сконвертированные наборы исполняются в КЛИЕНТСКОМ контуре
+		// (СП_ТестированиеКлиент / реальный UI 1C): модельный чек EDT
+		// common-module-name-client требует суффикс "Клиент/Client".
+		String suffix = "_Клиент";
+		if (!cleaned.endsWith(suffix)) {
+			// Ограничиваем длину имени модуля в метаданных 1C (до 64).
+			int maxBase = 64 - suffix.length();
+			if (cleaned.length() > maxBase) {
+				cleaned = cleaned.substring(0, maxBase);
+			}
+			while (cleaned.endsWith("_")) {
+				cleaned = cleaned.substring(0, cleaned.length() - 1);
+			}
+			cleaned = cleaned + suffix;
 		}
 		return cleaned;
 	}

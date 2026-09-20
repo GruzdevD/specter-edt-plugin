@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="9b8f6c24-1d2e-4a6b-9c0d-5e7f2a3b4c5d">
+  <name>СП_УтвержденияКлиент</name>
+  <synonym>
+    <key>ru</key>
+    <value>СП: Утверждения (клиентские)</value>
+  </synonym>
+  <comment>Клиентская assert-библиотека для сценариев на реальном UI (ASSERT_FAILED)</comment>
+  <clientManagedApplication>true</clientManagedApplication>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+</mdclass:CommonModule>
