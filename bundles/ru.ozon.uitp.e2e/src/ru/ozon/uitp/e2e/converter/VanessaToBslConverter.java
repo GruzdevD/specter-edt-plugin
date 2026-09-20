@@ -246,6 +246,16 @@ public class VanessaToBslConverter {
 		StringBuilder b = new StringBuilder();
 		String table = params.size() > 0 ? params.get(0) : "Таблица";
 
+		// «текущее поле заполнено / не заполнено» - состояние АКТИВНОЙ ячейки таблицы,
+		// имя поля берётся движком из контекста сессии (М2a), а не из шага.
+		if (text.contains("текущее поле") && (text.contains("заполнено") || text.contains("не заполнено"))) {
+			boolean filled = !text.contains("не заполнено");
+			b.append("\tРезДействия = СП_ДействияКлиент.ПроверитьТекущееПоле(Форма, ").append(filled ? "Истина" : "Ложь").append(");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
 		// «запоминаю значение поля X таблицы Y как Z»: params=[поле, таблица, переменная]
 		if (text.contains("запоминаю значение поля") && text.contains("таблицы") && params.size() >= 3) {
 			String field = params.get(0);
@@ -708,6 +718,31 @@ public class VanessaToBslConverter {
 			return bsl.toString();
 		}
 
+		// --- «в логе сообщений TestClient есть строка по шаблону "..."» (М4) ---
+		// Ассерт виртуального журнала сессии: ванессовский серверный лог TestClient на тонком/
+		// WEB клиенте физически отсутствует, поэтому проверяем журнал, который движок ведёт
+		// через СП_ОжиданияКлиент.ЗаписатьСообщение (функционально эквивалентная проверка).
+		if (text.contains("логе сообщений") && text.contains("по шаблону")) {
+			String template = !params.isEmpty() ? params.get(0) : "";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезВЖурнале = СП_ОжиданияКлиент.ВЖурналеЕстьСообщение(\"").append(escapeBslString(template)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезВЖурнале.ok, РезВЖурнале.message);");
+			return bsl.toString();
+		}
+
+		// --- «завершаю редактирование строки» без имени таблицы (М2a) ---
+		// Подтверждение ввода текущей строки; движок берёт активный элемент. Не конфликтует
+		// с табличным декомпозером: шаги с «в таблице …» обрабатываются ниже, с указанием имени.
+		if (text.contains("завершаю редактирование") && !text.contains("в таблице") && !text.contains("таблице ")
+				&& !text.contains("таблицы")) {
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.ЗавершитьРедактированиеСтроки(Форма, \"\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+
 		// --- Табличный контекст: декомпозиция на примитивы СП_ДействияКлиент (или честный TODO) ---
 		if (text.contains("в таблице") || text.contains("таблице ") || text.contains("таблицы")) {
 			String tableCode = translateTableStepToBsl(raw, text, params);
@@ -1014,9 +1049,35 @@ public class VanessaToBslConverter {
 			return bsl.toString();
 		}
 
-		// --- Универсальный вызов шага ---
-		bsl.append("\t// Пользовательский шаг: ").append(escapeBslString(raw)).append("\n");
-		bsl.append("\t// Реализуйте шаг через СП_ДействияКлиент / СП_ОжиданияКлиент или прямой вызов формы");
+		// --- Универсальный диспетчер бизнес-шагов (М1) ---
+		// Предметные шаги проекта (создать заявку, подключить пользователя, очистить данные и т.п.)
+		// не являются UI-примитивами: конвертер передаёт их в СП_ДействияКлиент.ВыполнитьБизнесШаг
+		// с извлечёнными параметрами в виде Структуры. Реализация каждого предметного шага живёт
+		// в наборе проекта (тело ВыполнитьБизнесШаг расширяется по СтрНачинаетсяС на ИмяШага).
+		// Единичный «Пользовательский шаг»-комментарий больше не генерируется: каждый шаг получает
+		// реализуемый контур (честный ok=Ложь, если шаг не зарегистрирован в наборе).
+		if (params != null && !params.isEmpty()) {
+			// Собрать "Параметр1, Параметр2, ..." и список значений из параметров шага.
+			StringBuilder keys = new StringBuilder();
+			StringBuilder values = new StringBuilder();
+			for (int p = 0; p < params.size(); p++) {
+				if (p > 0) {
+					keys.append(", ");
+					values.append(", ");
+				}
+				keys.append("Параметр").append(p + 1);
+				values.append("\"").append(escapeBslString(params.get(p))).append("\"");
+			}
+			bsl.append("\t//@skip-check structure-consructor-too-many-keys\n");
+			bsl.append("\tПараметрыШага = Новый Структура(\"").append(keys).append("\", ").append(values).append(");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.ВыполнитьБизнесШаг(\"").append(escapeBslString(raw)).append("\", ПараметрыШага);\n");
+		} else {
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.ВыполнитьБизнесШаг(\"").append(escapeBslString(raw)).append("\", Неопределено);\n");
+		}
+		bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+		bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
 		return bsl.toString();
 	}
 
