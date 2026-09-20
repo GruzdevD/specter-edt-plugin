@@ -562,8 +562,23 @@ public class VanessaToBslConverter {
 			return bsl.toString();
 		}
 
-		// --- Значение ячейки табличного документа ---
-		if (text.contains("табличного документа")) {
+		// --- Значение ячейки табличного документа по адресу (R6C15) + утверждение равенства ---
+		if (text.contains("адресом") && (text.contains("табличном документе") || text.contains("табличного документа"))) {
+			String docField = params.size() > 0 ? params.get(0) : "ТабличныйДокумент";
+			String addr = params.size() > 1 ? params.get(1) : "R1C1";
+			String expected = params.size() > 2 ? params.get(2) : "";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезАдрес = СП_ДействияКлиент.ПолучитьЗначениеЯчейкиТабличногоДокументаПоАдресу(Форма, \"").append(escapeBslString(docField))
+			   .append("\", \"").append(escapeBslString(addr)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(РезАдрес.Значение, СП_ТестированиеКлиент.ВычислитьЗначениеСПамятью(\"")
+			   .append(escapeBslString(expected));
+			bsl.append("\"), \"Ячейка '").append(escapeBslString(addr)).append("' табличного документа '").append(escapeBslString(docField)).append("'\");");
+			return bsl.toString();
+		}
+
+		// --- Значение ячейки табличного документа по номерам строки/колонки ---
+		if ((text.contains("табличного документа") || text.contains("в табличном документе")) && !text.contains("адресом")) {
 			String docField = params.size() > 0 ? params.get(0) : "ТабличныйДокумент";
 			String row = params.size() > 1 ? params.get(1) : firstNumberIn(raw, "1");
 			String col = params.size() > 2 ? params.get(2) : secondNumberIn(raw, "1");
