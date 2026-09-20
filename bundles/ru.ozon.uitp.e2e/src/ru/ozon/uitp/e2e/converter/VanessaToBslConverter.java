@@ -54,7 +54,10 @@ public class VanessaToBslConverter {
 	/** Структура результата в ЗапуститьНаборТестов(). */
 	private static final String RESULT_STRUCT_FIELDS = "Имя, Статус, Сообщение, ДлительностьМс, События, Ошибка";
 
-	private static final Pattern SECONDS_PATTERN = Pattern.compile("в течение (\\d+) секунд|в течение (\\d+) сек|(\\d+) секунд");
+	// Допускаем и дробные паузы («в течение 1.5 секунд», «в течение 2,5 сек») — \d+ их не
+	// захватывал бы, а такие таймауты валидны в Gherkin. Дробь позже округляется в extractSeconds.
+	private static final Pattern SECONDS_PATTERN = Pattern.compile(
+			"в течение (\\d+(?:[.,]\\d+)?) секунд|в течение (\\d+(?:[.,]\\d+)?) сек|(\\d+(?:[.,]\\d+)?) секунд");
 
 	/**
 	 * Ожидаемое количество строк таблицы: оператор сравнения (русское слово или символ,
@@ -78,13 +81,13 @@ public class VanessaToBslConverter {
 		sb.append("//©///////////////////////////////////////////////////////////////////////////©//\n");
 		sb.append("//  Модуль тестового набора: ").append(moduleName).append("\n");
 		sb.append("//  Автоматически сконвертирован из сценария Vanessa Automation:\n");
-		sb.append("//  Функционал: ").append(scenario.getFeatureName()).append("\n");
-		sb.append("//  Сценарий: ").append(scenarioName).append("\n");
+		sb.append("//  Функционал: ").append(sanitizeComment(scenario.getFeatureName())).append("\n");
+		sb.append("//  Сценарий: ").append(sanitizeComment(scenarioName)).append("\n");
 		if (scenario.getSourceFile() != null) {
-			sb.append("//  Исходный файл: ").append(scenario.getSourceFile().getName()).append("\n");
+			sb.append("//  Исходный файл: ").append(sanitizeComment(scenario.getSourceFile().getName())).append("\n");
 		}
 		if (!scenario.getTags().isEmpty()) {
-			sb.append("//  Теги: @").append(String.join(" @", scenario.getTags())).append("\n");
+			sb.append("//  Теги: @").append(sanitizeComment(String.join(" @", scenario.getTags()))).append("\n");
 		}
 		sb.append("//  Контур исполнения: клиентский (реальный UI 1C), раннер СП_ТестированиеКлиент\n");
 		sb.append("//  Движок: Specter / СП_Тестирование (1C:EDT E2E Engine)\n");
@@ -161,7 +164,7 @@ public class VanessaToBslConverter {
 		sb.append("КонецФункции\n\n");
 
 		// 3. Основной тестовый метод
-		sb.append("// Обработка сценария Vanessa: ").append(scenarioName).append(".\n");
+		sb.append("// Обработка сценария Vanessa: ").append(sanitizeComment(scenarioName)).append(".\n");
 		sb.append("//\n");
 		sb.append("//&Тест\n");
 		sb.append("// @test\n");
@@ -1429,16 +1432,29 @@ public class VanessaToBslConverter {
 		Matcher m = SECONDS_PATTERN.matcher(raw);
 		if (m.find()) {
 			for (int g = 1; g <= m.groupCount(); g++) {
-				if (m.group(g) != null) {
+				String val = m.group(g);
+				if (val != null) {
 					try {
-						return Integer.parseInt(m.group(g));
+						return (int) Math.round(Float.parseFloat(val.replace(',', '.')));
 					} catch (NumberFormatException ignored) {
-						// no-op
+						// no-op: пробуем следующую группу паттерна
 					}
 				}
 			}
 		}
 		return 10;
+	}
+
+	/**
+	 * Санитизация пользовательского текста перед вставкой в //-комментарий.
+	 * Названия фич/сценариев/тегов приходят из Gherkin и могут содержать переводы строк —
+	 * «сырая» вставка сломала бы генерацию (текст после \n пошёл бы как код). Заменяем
+	 * управляющие переносы пробелом; в строковые литералы значения всё равно уходят через
+	 * escapeBslString.
+	 */
+	private static String sanitizeComment(String text) {
+		if (text == null) return "";
+		return text.replace('\r', ' ').replace('\n', ' ');
 	}
 
 	private String generateTestMethodName(String scenarioName) {

@@ -6,7 +6,9 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
+import org.eclipse.debug.core.model.IProcess;
 import org.eclipse.swt.widgets.Display;
 import ru.ozon.uitp.e2e.Activator;
 import ru.ozon.uitp.e2e.launcher.BridgeLaunchHelper;
@@ -84,6 +86,12 @@ public final class BridgeRunner {
 										+ " до записи файла результата (проверьте синтаксис BSL и журнал регистрации 1С)"
 								: "Таймаут ожидания результата моста (" + (BridgeScenario.RESULT_TIMEOUT_MS / 1000) + " сек). Клиент 1С не вернул ответ.";
 						LaunchMonitor.info("Specter view: результат не получен: " + reason);
+						// P0 (утечка процессов): если клиент жив (завис на модальном окне / дедлок),
+						// он НЕ умрёт сам — каждый такой прогон оставлял в ОС висящий 1cv8c, съедающий
+						// память и держащий каталог обмена. Принудительно завершаем зависший launch.
+						if (exit == Integer.MIN_VALUE) {
+							terminateLaunch(launch);
+						}
 						return reportError(runId, onError, reason);
 					}
 					monitor.worked(50);
@@ -134,6 +142,41 @@ public final class BridgeRunner {
 		Display display = Display.getDefault();
 		if (display != null && !display.isDisposed()) {
 			display.asyncExec(runnable);
+			return;
+		}
+		// UI отсоединено (EDT закрывается): колбэк не отработает. Логируем, чтобы вызывающая
+		// сторона не ждала раннер вечно молча (особенно если результат ждут из WebView).
+		LaunchMonitor.info("Specter view: среда EDT завершает работу — колбэк прогона "
+				+ "моста отброшен (Display disposed)");
+	}
+
+	/**
+	 * Принудительное завершение зависшего launch'а 1С: сначала процессы, затем сам launch.
+	 * Идемпотентно — если клиент уже завершился, ничего не делает.
+	 */
+	private static void terminateLaunch(ILaunch launch) {
+		if (launch == null) {
+			return;
+		}
+		try {
+			IProcess[] procs = launch.getProcesses();
+			if (procs != null) {
+				for (IProcess p : procs) {
+					if (!p.isTerminated()) {
+						try {
+							p.terminate();
+						} catch (DebugException ignored) {
+							// пробуем остальными способами ниже
+						}
+					}
+				}
+			}
+			if (!launch.isTerminated()) {
+				launch.terminate();
+			}
+		} catch (CoreException e) {
+			LaunchMonitor.info("Specter view: не удалось принудительно завершить зависший "
+					+ "клиент 1С: " + e.getMessage());
 		}
 	}
 }
