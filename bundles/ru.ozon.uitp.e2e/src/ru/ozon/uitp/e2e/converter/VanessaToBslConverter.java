@@ -219,6 +219,143 @@ public class VanessaToBslConverter {
 	}
 
 	/**
+	 * Декомпозиция табличного шага Vanessa («в таблице …») на примитивы
+	 * СП_ДействияКлиент. Возвращает сгенерированный фрагмент, либо null,
+	 * если шаблон не распознан (тогда внешний код ставит честный TODO).
+	 * Работает поверх существующих примитивов ТЧ (ЗначениеТаблицы /
+	 * УстановитьЗначениеЯчейки / АктивизироватьСтрокуТаблицы / КоличествоСтрок).
+	 */
+	private String translateTableStepToBsl(String raw, String text, List<String> params) {
+		StringBuilder b = new StringBuilder();
+		String table = params.size() > 0 ? params.get(0) : "Таблица";
+
+		// «запоминаю значение поля X таблицы Y как Z»: params=[поле, таблица, переменная]
+		if (text.contains("запоминаю значение поля") && text.contains("таблицы") && params.size() >= 3) {
+			String field = params.get(0);
+			String ownerTable = params.get(1);
+			String var = params.get(2);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезТаблицы = СП_ДействияКлиент.ЗначениеТаблицы(Форма, \"").append(escapeBslString(ownerTable)).append("\", 0, \"").append(escapeBslString(field)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезТаблицы.ok, РезТаблицы.message);\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_ТестированиеКлиент.СохранитьВПамять(\"").append(escapeBslString(var)).append("\", РезТаблицы.Значение);");
+			return b.toString();
+		}
+
+		// «поле [с именем] … имеет значение …» — чтение колонки + проверка
+		if (text.contains("поле") && text.contains("имеет значение") && params.size() >= 3) {
+			String field = params.get(1);
+			String value = params.get(2);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезТаблицы = СП_ДействияКлиент.ЗначениеТаблицы(Форма, \"").append(escapeBslString(table)).append("\", 0, \"").append(escapeBslString(field)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезТаблицы.ok, РезТаблицы.message);\n");
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(Строка(РезТаблицы.Значение) = \"" + escapeBslString(value)
+			   + "\", \"Поле '" + escapeBslString(field) + "' таблицы '" + escapeBslString(table) + "' должно быть равно '" + escapeBslString(value) + "'\");");
+			return b.toString();
+		}
+
+		// «поле … заполнено / не заполнено»
+		if (text.contains("поле") && (text.contains("заполнено") || text.contains("не заполнено")) && params.size() >= 2) {
+			String field = params.get(1);
+			boolean filled = !text.contains("не заполнено");
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезТаблицы = СП_ДействияКлиент.ЗначениеТаблицы(Форма, \"").append(escapeBslString(table)).append("\", 0, \"").append(escapeBslString(field)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезТаблицы.ok, РезТаблицы.message);\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(").append(filled ? "ЗначениеЗаполнено" : "НЕ ЗначениеЗаполнено")
+			   .append("(РезТаблицы.Значение), \"Поле '").append(escapeBslString(field)).append("' таблицы '").append(escapeBslString(table)).append("' ").append(filled ? "должно быть заполнено" : "должно быть пустым").append("\");");
+			return b.toString();
+		}
+
+		// «активизирую поле [с именем] …»
+		if (text.contains("активизирую поле") && params.size() >= 2) {
+			String field = params.get(1);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьПолеВТаблице(Форма, \"").append(escapeBslString(table)).append("\", \"").append(escapeBslString(field)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «ввожу текст …» / «из выпадающего списка … выбираю точное значение …» — запись ячейки
+		if ((text.contains("ввожу текст") || text.contains("выпадающего списка")) && params.size() >= 3) {
+			String field = params.get(1);
+			String value = params.get(2);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначениеЯчейки(Форма, \"").append(escapeBslString(table)).append("\", 0, \"").append(escapeBslString(field)).append("\", \"").append(escapeBslString(value)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «устанавливаю/изменяю флаг [с именем] …»
+		if (text.contains("флаг") && (text.contains("устанавливаю") || text.contains("изменяю")) && params.size() >= 2) {
+			String field = params.get(1);
+			boolean on = !text.contains("снимаю");
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.УстановитьЗначениеЯчейки(Форма, \"").append(escapeBslString(table)).append("\", 0, \"").append(escapeBslString(field)).append("\", ").append(on ? "Истина" : "Ложь").append(");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «завершаю редактирование строки»
+		if (text.contains("завершаю редактирование")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.ЗавершитьРедактированиеСтроки(Форма, \"").append(escapeBslString(table)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «нажимаю на кнопку [с именем] …»
+		if (text.contains("нажимаю на кнопку") && text.contains("именем") && params.size() >= 2) {
+			String btn = params.get(1);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.НажатьКнопку(Форма, \"").append(escapeBslString(btn)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «выбираю текущую строку» / «перехожу к первой строке» / «на одну строку вверх»
+		if (text.contains("выбираю текущую строку") || text.contains("перехожу к первой строке") || text.contains("на одну строку вверх")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьСтрокуТаблицы(Форма, \"").append(escapeBslString(table)).append("\", 0);\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «на одну строку вниз» (следующая строка)
+		if (text.contains("на одну строку вниз")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьСтрокуТаблицы(Форма, \"").append(escapeBslString(table)).append("\", 1);\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «количество строк … равно N»
+		if (text.contains("количество строк") && params.size() >= 2) {
+			String expected = params.get(1);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tКолТаблицы = СП_ДействияКлиент.КоличествоСтрок(Форма, \"").append(escapeBslString(table)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(КолТаблицы, ").append(escapeBslString(expected)).append(", \"Количество строк таблицы '" + escapeBslString(table) + "'\");");
+			return b.toString();
+		}
+
+		return null;
+	}
+
+	/**
 	 * Транслирует один шаг Vanessa во фрагмент тела клиентской процедуры Тест_*().
 	 * Возвращает строку (возможно, многострочную) с завершающим переводом строки.
 	 */
@@ -227,6 +364,60 @@ public class VanessaToBslConverter {
 		String text = raw.toLowerCase();
 		List<String> params = step.getParameters();
 		StringBuilder bsl = new StringBuilder();
+
+		// --- Пауза / ожидание с фиксированным таймаутом ---
+		//  => СП_ОжиданияКлиент.Пауза(N). Должна идти РАНЬШЕ проверки "жду/ожидаю",
+		//  иначе "жду N секунд" ошибочно уходит в ДождатьсяВидимостиЭлемента.
+		if (text.contains("пауз") || (text.contains("секунд") && (text.contains("жду") || text.contains("ожидаю") || text.contains("подождать")))) {
+			int seconds = extractSeconds(raw);
+			bsl.append("\tСП_ОжиданияКлиент.Пауза(").append(seconds).append(");");
+			return bsl.toString();
+		}
+
+		// --- Разворачивание/сворачивание группы формы ---
+		if ((text.contains("разворачиваю группу") || text.contains("развернуть группу")
+				|| text.contains("сворачиваю группу") || text.contains("свернуть группу")) && params.size() >= 1) {
+			String group = params.get(0);
+			boolean expand = (text.contains("разворач") || text.contains("развернуть"));
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.РазвернутьГруппу(Форма, \"").append(escapeBslString(group)).append("\", ").append(expand ? "Истина" : "Ложь").append(");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+
+		// --- Проверка наличия элемента на форме (присутствует/отсутствует) ---
+		if ((text.contains("присутствует на форме") || text.contains("отсутствует на форме")) && params.size() >= 1) {
+			String el = params.get(0);
+			boolean present = text.contains("присутствует на форме");
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.ЭлементНаФорме(Форма, \"").append(escapeBslString(el)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеРавенство(РезДействия.Присутствует, ").append(present ? "Истина" : "Ложь")
+			   .append(", \"Элемент '").append(escapeBslString(el)).append("' должен ").append(present ? "присутствовать" : "отсутствовать").append(" на форме\");");
+			return bsl.toString();
+		}
+
+		// --- Активизация уже открытой формы по заголовку ---
+		if (text.contains("активизирую форму") && params.size() >= 1) {
+			String title = params.get(0);
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьНаПанелиОткрытых(\"").append(escapeBslString(title)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+
+		// --- Активизация (фокус) обычного поля формы (не табличного) ---
+		if (text.contains("активизирую поле") && params.size() >= 1) {
+			String el = params.get(0);
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьЭлемент(Форма, \"").append(escapeBslString(el)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
 
 		// --- Кнопка выбора у поля: сложная семантика выбора, честный TODO ---
 		if (text.contains("кнопку выбора") || text.contains("кнопка выбора")) {
@@ -248,8 +439,13 @@ public class VanessaToBslConverter {
 			return bsl.toString();
 		}
 
-		// --- Табличный контекст: семантика сложная, честный TODO (не путать кнопки/поля таблицы) ---
-		if (text.contains("в таблице") || text.contains("таблиц")) {
+		// --- Табличный контекст: декомпозиция на примитивы СП_ДействияКлиент (или честный TODO) ---
+		if (text.contains("в таблице") || text.contains("таблице ") || text.contains("таблицы")) {
+			String tableCode = translateTableStepToBsl(raw, text, params);
+			if (tableCode != null) {
+				bsl.append(tableCode);
+				return bsl.toString();
+			}
 			bsl.append("\t// TODO (табличный контекст): ").append(escapeBslString(raw)).append("\n");
 			bsl.append("\t// В движке есть СП_ДействияКлиент: НайтиСтроку / ДобавитьСтроку / УстановитьЗначениеЯчейки\n");
 			bsl.append("\t// СП_ДействияКлиент.НайтиСтроку(Форма, <таблица>, <отбор>); (реализовать по сценарию)");
@@ -257,8 +453,12 @@ public class VanessaToBslConverter {
 		}
 
 		// --- Нажатие кнопки с именем ---
-		if (text.contains("нажимаю") && text.contains("кнопку") && text.contains("именем")
-				|| text.contains("нажать кнопку") || text.contains("нажимаю кнопку") || text.contains("click button")) {
+		// Покрывает: «нажимаю кнопку <имя>», «нажимаю на кнопку "<имя>"», «нажать кнопку …»,
+		// «click button …». ПРИМЕЧАНИЕ: оператор || имеет меньший приоритет, чем &&, поэтому
+		// каждую альтернативу фразы «нажимаю на кнопку» нужно перечислять явно.
+		if (text.contains("нажимаю кнопку") || text.contains("нажимаю на кнопку")
+				|| text.contains("нажать кнопку") || text.contains("кликаю кнопку")
+				|| text.contains("click button")) {
 			String btnName = !params.isEmpty() ? params.get(0) : "ОсновныеДействия";
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
 			bsl.append("\tРезДействия = СП_ДействияКлиент.НажатьКнопку(Форма, \"").append(escapeBslString(btnName)).append("\");\n");
@@ -327,6 +527,18 @@ public class VanessaToBslConverter {
 			return bsl.toString();
 		}
 
+		// --- Удаление переменных из памяти сценария ---
+		if (text.contains("удаляю все переменные") || text.contains("удалить все переменные")) {
+			bsl.append("\tСП_ТестированиеКлиент.ОчиститьПеременныеСценария();");
+			return bsl.toString();
+		}
+		if (text.contains("удаляю переменную") || text.contains("удалить переменную")) {
+			String varName = !params.isEmpty() ? params.get(0) : "Переменная";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tСП_ТестированиеКлиент.ОчиститьПеременную(\"").append(escapeBslString(varName)).append("\");");
+			return bsl.toString();
+		}
+
 		// --- Установить флаг ---
 		if (text.contains("устанавливаю флаг") || text.contains("снимаю флаг") || text.contains("чекбокс")) {
 			String flagName = !params.isEmpty() ? params.get(0) : "Флаг";
@@ -374,7 +586,8 @@ public class VanessaToBslConverter {
 		}
 
 		// --- Открытие окна / ожидание открытия ---
-		if (text.contains("открытия окна") || text.contains("открывается окно")) {
+		//  "открылось окно" — то же ожидание, что и "открытия окна" (везде)
+		if (text.contains("открытия окна") || text.contains("открывается окно") || text.contains("открылось окно")) {
 			String windowTitle = !params.isEmpty() ? params.get(0) : "Форма";
 			int seconds = extractSeconds(raw);
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
@@ -395,7 +608,7 @@ public class VanessaToBslConverter {
 		}
 
 		// --- Ожидание доступности элемента ---
-		if (text.contains("доступности") || text.contains("стал доступен") || text.contains("стал активен")) {
+		if (text.contains("доступности") || text.contains("доступен") || text.contains("стал активен")) {
 			String elem = !params.isEmpty() ? params.get(0) : "ЭлементФормы";
 			int seconds = extractSeconds(raw);
 			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
@@ -440,6 +653,81 @@ public class VanessaToBslConverter {
 			bsl.append("\t// TODO (табличный контекст): ").append(escapeBslString(raw)).append("\n");
 			bsl.append("\t// В движке есть СП_ДействияКлиент: НайтиСтроку / ДобавитьСтроку / УстановитьЗначениеЯчейки\n");
 			bsl.append("\t// СП_ДействияКлиент.НайтиСтроку(Форма, <таблица>, <отбор>); (реализовать по сценарию)");
+			return bsl.toString();
+		}
+
+		// --- Гиперссылка ---
+		if (text.contains("гиперссылк")) {
+			String link = !params.isEmpty() ? params.get(0) : "Гиперссылка";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.НажатьГиперссылку(Форма, \"").append(escapeBslString(link)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+
+		// --- Закрытие окон клиентского приложения ---
+		if (text.contains("закрываю все окна") || text.contains("закрыть все окна")) {
+			bsl.append("\tРезДействия = СП_ДействияКлиент.ЗакрытьВсеОкна();\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+		if (text.contains("закрываю окно") || text.contains("закрыть окно") || text.contains("закрываю текущее окно")) {
+			String title = !params.isEmpty() ? params.get(0) : "Форма";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.ЗакрытьОкноПоЗаголовку(\"").append(escapeBslString(title)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+
+		// --- Панель открытых окон ---
+		if (text.contains("панели открытых") || text.contains("панель открытых")) {
+			String title = !params.isEmpty() ? params.get(0) : "Форма";
+			bsl.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			bsl.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьНаПанелиОткрытых(\"").append(escapeBslString(title)).append("\");\n");
+			bsl.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			bsl.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return bsl.toString();
+		}
+
+		// --- Классы шагов, требующие нереализуемой на клиенте инфраструктуры:
+		//  честные TODO с конкретной подсказкой, без методов-заглушек и без маскировки ---
+		if (text.contains("командном интерфейсе") || text.contains("командный интерфейс")) {
+			bsl.append("\t// TODO (командный интерфейс): ").append(escapeBslString(raw)).append("\n");
+			bsl.append("\t// Переход по разделу выполняйте через СП_ТестированиеКлиент.ОткрытьФормуУниверсально(\"<Команда>\").\n");
+			bsl.append("\t// Панель разделов / команд клиента программно недоступна на управляемом клиенте 1С.");
+			return bsl.toString();
+		}
+		if (text.contains("выбираю файл") || text.contains("выбрать файл")) {
+			bsl.append("\t// TODO (выбор файла): ").append(escapeBslString(raw)).append("\n");
+			bsl.append("\t// Диалог выбора файла на управляемом клиенте программно не открывается; передайте путь\n");
+			bsl.append("\t// через СП_ДействияКлиент.УстановитьЗначение(Форма, \"<Поле>\", \"<путь>\"), если поле строковое.");
+			return bsl.toString();
+		}
+		if (text.contains("контекстного меню")) {
+			bsl.append("\t// TODO (контекстное меню): ").append(escapeBslString(raw)).append("\n");
+			bsl.append("\t// Вызов пункта контекстного меню программно на управляемом клиенте не поддерживается;\n");
+			bsl.append("\t// выполните команду через СП_ДействияКлиент.НажатьКнопку(Форма, \"<Команда>\") при наличии.");
+			return bsl.toString();
+		}
+		if (text.contains("сочетание клавиш")) {
+			bsl.append("\t// TODO (сочетание клавиш): ").append(escapeBslString(raw)).append("\n");
+			bsl.append("\t// Эмуляция клавиш на управляемом клиенте недоступна; замените шаг на прямой вызов команды.");
+			return bsl.toString();
+		}
+		if (text.contains("перехожу к следующему реквизиту") || text.contains("перехожу к предыдущему реквизиту")
+				|| text.contains("перейти к следующему реквизиту")) {
+			bsl.append("\t// TODO (переход к реквизиту): ").append(escapeBslString(raw)).append("\n");
+			bsl.append("\t// Навигация по реквизитам (Tab/Shift+Tab). На управляемом клиенте эмулируйте через\n");
+			bsl.append("\t// СП_ДействияКлиент.АктивизироватьЭлемент(Форма, \"<ИмяСледующегоПоля>\") по модели формы.");
+			return bsl.toString();
+		}
+		if (text.contains("разворачиваю группу") || text.contains("развернуть группу")) {
+			bsl.append("\t// TODO (сворачивание/разворачивание группы): ").append(escapeBslString(raw)).append("\n");
+			bsl.append("\t// Программного разворачивания группы формы на управляемом клиенте нет; убедитесь,\n");
+			bsl.append("\t// что группа раскрыта по умолчанию, либо работайте с полями напрямую.");
 			return bsl.toString();
 		}
 

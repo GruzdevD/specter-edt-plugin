@@ -126,7 +126,9 @@ public class VanessaFeatureParser {
 
 	private void extractParameters(String text, VanessaStep step) {
 		// Извлечение параметров в кавычках: "..." или '...'
-		Pattern paramPattern = Pattern.compile("[\"']([^\"']+)[\"']");
+		// Звёздочка, а не плюс: пустое значение '...' = "" / '' должно извлекаться,
+		// иначе шаг «... имеет значение ''» (ожидание пустого поля) теряет третий параметр.
+		Pattern paramPattern = Pattern.compile("[\"']([^\"']*)[\"']");
 		Matcher matcher = paramPattern.matcher(text);
 		while (matcher.find()) {
 			step.addParameter(matcher.group(1));
