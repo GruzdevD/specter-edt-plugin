@@ -18,7 +18,7 @@
   <containedObjects classId="e68182ea-4237-4383-967f-90c1e3370bc7" objectId="7ae48a5e-a378-43fc-995a-25da64c1937e"/>
   <containedObjects classId="fb282519-d103-4dd3-bc12-cb271d631dfc" objectId="8d0a2979-f2c1-4ebf-8dd9-0b367b9692c1"/>
   <namePrefix>СП_</namePrefix>
-  <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
+  <configurationExtensionCompatibilityMode>8.3.19</configurationExtensionCompatibilityMode>
   <configurationExtensionPurpose>AddOn</configurationExtensionPurpose>
   <scriptVariant>Russian</scriptVariant>
   <version>0.3.4</version>
