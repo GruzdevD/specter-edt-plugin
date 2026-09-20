@@ -133,8 +133,14 @@ public class TestsView extends ViewPart {
 
 	private void loadSpecterEmblem() {
 		try {
+			// Брендовый логотип (привидение) — сначала фирменная иконка эмблемы;
+			// fallback на прежние тестовые иконки, если эмблема вдруг отсутствует.
 			org.eclipse.jface.resource.ImageDescriptor desc = Activator.imageDescriptorFromPlugin(
-				Activator.BUNDLE_ID, "icons/specter-tests@2x.png");
+				Activator.BUNDLE_ID, "icons/specter-emblem.png");
+			if (desc == null) {
+				desc = Activator.imageDescriptorFromPlugin(
+					Activator.BUNDLE_ID, "icons/specter-tests@2x.png");
+			}
 			if (desc == null) {
 				desc = Activator.imageDescriptorFromPlugin(Activator.BUNDLE_ID, "icons/specter-tests.png");
 			}

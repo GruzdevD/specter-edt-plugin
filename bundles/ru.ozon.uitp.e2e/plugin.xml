@@ -19,7 +19,7 @@
             id="ru.ozon.uitp.e2e.views.TestsView"
             category="ru.ozon.uitp.e2e.views.category"
             name="Specter: Тесты и Результаты"
-            icon="icons/specter-tests.png"
+            icon="icons/specter-emblem.png"
             class="ru.ozon.uitp.e2e.views.TestsView"
             restorable="true">
       </view>
@@ -27,7 +27,7 @@
             id="ru.ozon.uitp.e2e.views.ExtensionTestsView"
             category="ru.ozon.uitp.e2e.views.category"
             name="Тесты расширения (СП)"
-            icon="icons/specter-tests.png"
+            icon="icons/specter-emblem.png"
             class="ru.ozon.uitp.e2e.views.ExtensionTestsView"
             restorable="true">
       </view>
@@ -152,7 +152,7 @@
          <menu
                id="ru.ozon.uitp.e2e.mainMenu"
                label="Specter"
-               icon="icons/specter-tests.png">
+               icon="icons/specter-emblem.png">
             <command
                   commandId="ru.ozon.uitp.e2e.commands.runTestAtCursor"
                   label="▶ Запустить тест под курсором (СП)"

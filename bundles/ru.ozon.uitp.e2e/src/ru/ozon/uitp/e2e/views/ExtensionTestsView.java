@@ -89,8 +89,14 @@ public class ExtensionTestsView extends ViewPart {
 
 		// Инициализируем эмблему Specter для фонового брендинга
 		try {
+			// Брендовый логотип (привидение) — приоритет фирменной иконки эмблемы;
+			// fallback на прежние тестовые иконки, если эмблемы нет.
 			org.eclipse.jface.resource.ImageDescriptor desc = Activator.imageDescriptorFromPlugin(
-				Activator.BUNDLE_ID, "icons/specter-tests@2x.png");
+				Activator.BUNDLE_ID, "icons/specter-emblem.png");
+			if (desc == null) {
+				desc = Activator.imageDescriptorFromPlugin(
+					Activator.BUNDLE_ID, "icons/specter-tests@2x.png");
+			}
 			if (desc == null) {
 				desc = Activator.imageDescriptorFromPlugin(Activator.BUNDLE_ID, "icons/specter-tests.png");
 			}
