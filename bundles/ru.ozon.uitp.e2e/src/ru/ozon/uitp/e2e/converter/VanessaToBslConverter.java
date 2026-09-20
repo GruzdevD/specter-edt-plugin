@@ -358,6 +358,54 @@ public class VanessaToBslConverter {
 			return b.toString();
 		}
 
+		// «выделяю все строки» — выделение всех строк таблицы формы (в т.ч. динамического списка)
+		if (text.contains("выделяю все строки")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.ВыделитьВсеСтроки(Форма, \"").append(escapeBslString(table)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «перехожу к последней строке» — на последнюю строку таблицы (есть и формулировка «к последней строке таблиц»)
+		if (text.contains("перехожу к последней строке") || text.contains("к последней строке таблиц")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.ПерейтиКПоследнейСтрокеТаблицы(Форма, \"").append(escapeBslString(table)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «перехожу к следующей строке» — на следующую строку таблицы
+		if (text.contains("перехожу к следующей строке") || text.contains("к следующей строке таблиц")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.ПерейтиКСледующейСтрокеТаблицы(Форма, \"").append(escapeBslString(table)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «активизирую дополнение формы с именем <Y>» — это отдельный элемент формы (строка поиска и т.п.),
+		// а не колонка таблицы; активируем его как обычный элемент. params = [таблица, имя дополнения].
+		if (text.contains("активизирую дополнение формы") && params.size() >= 2) {
+			String el = params.get(1);
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьЭлемент(Форма, \"").append(escapeBslString(el)).append("\");\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
+		// «перехожу к строке» (без отбора) — активация строки таблицы (первой). НЕ трогаем
+		// «перехожу к строке:» (многострочный отбор по значениям) и «перехожу к строке по шаблону».
+		if (text.contains("перехожу к строке") && !text.contains(":") && !text.contains("по шаблону")) {
+			b.append("\t//@skip-check bsl-legacy-check-string-literal\n");
+			b.append("\tРезДействия = СП_ДействияКлиент.АктивизироватьСтрокуТаблицы(Форма, \"").append(escapeBslString(table)).append("\", 0);\n");
+			b.append("\t//@skip-check bsl-legacy-check-dynamic-feature-access\n");
+			b.append("\tСП_УтвержденияКлиент.УтверждениеИстина(РезДействия.ok, РезДействия.message);");
+			return b.toString();
+		}
+
 		// «запоминаю количество строк таблицы X как <переменная>» — сохранение, не проверка.
 		// Идёт ДО блока «количество строк <оператор> N», чтобы текст «запоминаю количество строк»
 		// не ушёл в проверку: здесь параметры = [таблица, переменная].
@@ -457,17 +505,28 @@ public class VanessaToBslConverter {
 	/**
 	 * Решает, объявлять ли локальную переменную Форма в начале тестового метода.
 	 * Форму объявляем только если она реально используется в сгенерированном коде
-	 * (вне строковых литералов и комментариев) и не объявлена собственным
-	 * присваиванием «Форма = …» (присваивание само создаёт локальную переменную).
+	 * (вне строковых литералов и комментариев) и первое её упоминание — НЕ присваивание.
+	 * Ключевой сценарий: UI-шаг использует Форма (например «НажатьКнопку(Форма, …)»)
+	 * раньше, чем форма открывается и присваивается («Форма = …ОткрытьФормуУниверсально»).
+	 * Тогда простой поиск «Форма =» неверно решил бы, что переменная объявлена, и
+	 * валидатор дал бы «Переменная 'Форма' не определена». Смотрим первое вхождение:
+	 * если сразу за ним следует «=» — переменная объявляется собственным присваиванием;
+	 * иначе — это использование до объявления, и нужна строка «Форма = Неопределено;».
 	 */
 	private static boolean needsFormVariable(String body) {
 		if (body == null || body.isEmpty()) return false;
 		// Убираем строковые литералы и комментарии — Форма в них не считается использованием.
 		String stripped = body.replaceAll("\"([^\"\\\\]|\\\\.)*\"", "");
 		stripped = stripped.replaceAll("//[^\n]*", "");
-		if (!Pattern.compile("\\bФорма\\b").matcher(stripped).find()) return false;
-		boolean hasAssign = Pattern.compile("\\bФорма\\s*=").matcher(stripped).find();
-		return !hasAssign;
+		Matcher m = Pattern.compile("\\bФорма\\b").matcher(stripped);
+		if (!m.find()) return false;
+		// Позиция сразу после первого токена с пропуском пробелов.
+		int after = m.end();
+		while (after < stripped.length() && Character.isWhitespace(stripped.charAt(after))) {
+			after++;
+		}
+		// Первое вхождение — присваивание «Форма = …»: объявлять не нужно.
+		return after >= stripped.length() || stripped.charAt(after) != '=';
 	}
 
 	/**
