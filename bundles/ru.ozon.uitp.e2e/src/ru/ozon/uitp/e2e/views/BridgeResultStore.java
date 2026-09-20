@@ -43,8 +43,27 @@ public final class BridgeResultStore {
 		synchronized (listeners) {
 			copy = new ArrayList<>(listeners);
 		}
-		for (Listener l : copy) {
-			l.resultUpdated(result);
+		if (copy.isEmpty()) {
+			return;
+		}
+		// Bug 3: set() достигается и с UI-потока (BridgeRunner.dispatchToUI), и с фоновых Job
+		// (reloadLatestFromOutDirAsync -> reloadLatestFromOutDir -> set()). Слушатели трогают SWT
+		// (ResultsView StyledText, TestsView TreeViewer), что допустимо только на UI-потоке;
+		// вызов с Job кидает "Invalid thread access" и роняет панель «Результаты». Диспетчеризуем
+		// синхронно, если уже на UI-потоке, иначе переходим на него через asyncExec.
+		Display display = Display.getDefault();
+		if (display == null || display.isDisposed()) {
+			return;
+		}
+		Runnable fire = () -> {
+			for (Listener l : copy) {
+				l.resultUpdated(result);
+			}
+		};
+		if (Thread.currentThread() == display.getThread()) {
+			fire.run();
+		} else {
+			display.asyncExec(fire);
 		}
 	}
 

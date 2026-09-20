@@ -250,6 +250,10 @@ public class TestsView extends ViewPart {
 	private void createToolbarActions() {
 		IToolBarManager tb = getViewSite().getActionBars().getToolBarManager();
 
+		// Bug 5: единственная копия кнопок запуска — сбрасываем toolbar перед наполнением,
+		// чтобы при пересоздании представления кнопки не накапливались (спам дублей).
+		tb.removeAll();
+
 		runBridgeAction = new Action("Запустить мост (R1-канон)") {
 			@Override public void run() { runBridgeScenario(); }
 		};

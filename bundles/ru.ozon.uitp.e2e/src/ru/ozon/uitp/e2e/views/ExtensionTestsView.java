@@ -265,6 +265,11 @@ public class ExtensionTestsView extends ViewPart {
 	private void createActions() {
 		IToolBarManager tb = getViewSite().getActionBars().getToolBarManager();
 
+		// Bug 5: держим РОВНО одну копию кнопок запуска — сбрасываем toolbar перед наполнением,
+		// иначе при повторном createPartControl (сворачивание/разворачивание панели) actions
+		// накапливаются и на панели появляется спам дублирующихся кнопок запуска.
+		tb.removeAll();
+
 		runSelectedAction = new Action("Запустить выбранный тест") {
 			@Override
 			public void run() {

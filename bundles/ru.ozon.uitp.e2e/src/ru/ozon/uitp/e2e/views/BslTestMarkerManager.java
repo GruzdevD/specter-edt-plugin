@@ -342,10 +342,13 @@ public final class BslTestMarkerManager {
 				Matcher m = TEST_METHOD_PATTERN.matcher(line);
 				if (m.matches()) {
 					String procName = m.group(1);
-					boolean isExport = line.contains("Экспорт") || line.contains("Export")
-							|| line.toLowerCase().contains("экспорт") || line.toLowerCase().contains("export");
 
-					if (hasTestAnnotation || (isTestModule && isExport) || isTestProcName(procName) || isTestModule) {
+					// Bug 1: кнопка/маркер запуска — ТОЛЬКО для тест-процедур: имя с префиксом
+					// Тест_/Test_ (регистронезависимо) ИЛИ аннотация &Тест / // @test над объявлением.
+					// Раньше условие (isTestModule && isExport) помечало ВСЕ экспортные процедуры
+					// тестового модуля, а при недоступной метамодели (cm==null) — и вовсе любой .bsl,
+					// из-за чего gutter-кнопка появлялась на каждой процедуре. Эти ветки убраны.
+					if (hasTestAnnotation || isTestProcName(procName)) {
 						result.add(new TestMethodInfo(procName, lineNum));
 					}
 					hasTestAnnotation = false;
