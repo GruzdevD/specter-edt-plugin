@@ -23,7 +23,9 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jface.text,
  com._1c.g5.v8.dt.launching.core,
  com._1c.g5.v8.dt.metadata,
- com._1c.g5.v8.dt.bsl.model
+ com._1c.g5.v8.dt.bsl.model,
+ com.e1c.g5.dt.applications,
+ org.osgi.framework
 Export-Package: ru.ozon.uitp.e2e,
  ru.ozon.uitp.e2e.converter,
  ru.ozon.uitp.e2e.launcher,
