@@ -60,40 +60,27 @@ public final class SpecterLaunchAttributes {
 	}
 
 	/**
-	 * Готовит рабочий клон базовой конфигурации: находит/создаёт «Specter: <base>»,
-	 * обновляет его из базы и накладывает параметры прогона Specter.
-	 * Возвращает сохранённую конфигурацию клона.
+	 * Готовит ВРЕМЕННЫЙ клон базовой конфигурации в памяти (working copy, БЕЗ
+	 * сохранения в workspace — в Run Configurations пользовательская конфигурация
+	 * всегда одна) и накладывает параметры прогона Specter.
+	 * Запуск идёт от working copy: клиент стартует с параметрами моста,
+	 * но конфигурация-клон нигде не persists (схема YAxUnit).
 	 */
 	public static ILaunchConfiguration prepareClone(ILaunchConfiguration base, String outDir,
 			String user, String password, int port) throws CoreException {
 		String targetName = cloneName(base.getName());
-		org.eclipse.debug.core.ILaunchManager lm =
-				org.eclipse.debug.core.DebugPlugin.getDefault().getLaunchManager();
 
-		// Клон один: ищем существующий, чтобы не размножать конфигурации запуска.
-		ILaunchConfiguration existing = null;
-		for (ILaunchConfiguration c : lm.getLaunchConfigurations()) {
-			if (targetName.equals(c.getName())) {
-				existing = c;
-				break;
-			}
-		}
+		// Клон живёт ТОЛЬКО в памяти: base.copy → working copy, doSave() НЕ вызываем.
+		ILaunchConfigurationWorkingCopy wc = base.copy(targetName);
 
-		ILaunchConfigurationWorkingCopy wc = (existing != null)
-				? existing.getWorkingCopy()
-				: base.copy(targetName);
-
-		// 1. Клон уже назван (base.copy при создании / существующий файл);
-		//    атрибуты базы не перечитываем — пользователь мог настроить клон вручную.
-
-		// 2. Параметры моста Specter: маркер запуска агента в ПараметрЗапуске.
+		// 1. Параметры моста Specter: маркер запуска агента в ПараметрЗапуске.
 		String startupOption = BridgeLaunchHelper.STARTUP_OPTION
 				+ BridgeLaunchHelper.STARTUP_OPTION_DELIM
 				+ BridgeLaunchHelper.OUT_DIR_PARAM + outDir;
 		wc.setAttribute(com._1c.g5.v8.dt.launching.core.ILaunchConfigurationAttributes.STARTUP_OPTION,
 				startupOption);
 
-		// 3. Автовход в ИБ.
+		// 2. Автовход в ИБ (атрибуты базы уже скопированы).
 		if (user != null && !user.isBlank()) {
 			wc.setAttribute(com._1c.g5.v8.dt.launching.core.ILaunchConfigurationAttributes.LAUNCH_USER_NAME,
 					user.trim());
@@ -103,10 +90,10 @@ public final class SpecterLaunchAttributes {
 					password);
 		}
 
-		// 4. Режим клиент-тестирования (канал B, ADR-009): ведущий сеанс /TESTMANAGER.
+		// 3. Режим клиент-тестирования (канал B, ADR-009): ведущий сеанс /TESTMANAGER.
 		applyTestingMode(wc, port);
 
-		return wc.doSave();
+		return wc;
 	}
 
 	/**

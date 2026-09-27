@@ -101,9 +101,12 @@ public class SpecterLaunchDelegate implements ILaunchConfigurationDelegate {
 			}
 			ru.ozon.uitp.e2e.Activator.logInfo("Specter: ИБ '" + projectName
 					+ "' не синхронна (" + state + ") — программное обновление перед запуском");
+			// ExecutionContext обязателен: EDT-делегат дергает context.getProperty (NPE на null).
+			com.e1c.g5.dt.applications.ExecutionContext context =
+					new com.e1c.g5.dt.applications.ExecutionContext();
 			appManager.update(application,
 					com.e1c.g5.dt.applications.ApplicationUpdateType.INCREMENTAL,
-					null, monitor);
+					context, monitor);
 			ru.ozon.uitp.e2e.Activator.logInfo("Specter: программное обновление ИБ завершено");
 		} catch (Exception e) {
 			// Не блокируем прогон: EDT-делегат в крайнем случае спросит модалкой, как раньше.
