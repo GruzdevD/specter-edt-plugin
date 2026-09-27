@@ -466,7 +466,9 @@ public class TestsView extends ViewPart {
 
 		for (BridgeResult.Step s : currentResult.steps) {
 			String stepStatus = s.status != null ? s.status.toUpperCase() : "UNKNOWN";
-			sb.append(String.format("  #%-2d  %-24s [%s]", s.id, s.action, stepStatus));
+			// Step.id — строка (идентификатор шага из bridge-result); %-2d
+			// на строке роняет рендер панели (IllegalFormatConversionException).
+			sb.append(String.format("  %-4s  %-24s [%s]", s.id == null ? "" : s.id, s.action, stepStatus));
 			if (s.detail != null && !s.detail.isEmpty()) {
 				sb.append("\n       └─ ").append(s.detail);
 			}

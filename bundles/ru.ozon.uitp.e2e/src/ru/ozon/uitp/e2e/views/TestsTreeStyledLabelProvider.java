@@ -144,7 +144,8 @@ public class TestsTreeStyledLabelProvider extends StyledCellLabelProvider {
 			boolean failed = s.isFailed();
 			boolean skipped = s.isSkipped();
 
-			styled.append(String.format("#%-2d ", s.id), StyledString.QUALIFIER_STYLER);
+			// Step.id — строка; %-2d на строке роняет рендер (IllegalFormatConversionException).
+			styled.append("#" + (s.id == null ? "" : s.id) + " ", StyledString.QUALIFIER_STYLER);
 			styled.append(s.action + "  ", new Styler() {
 				@Override
 				public void applyStyles(org.eclipse.swt.graphics.TextStyle ts) {
