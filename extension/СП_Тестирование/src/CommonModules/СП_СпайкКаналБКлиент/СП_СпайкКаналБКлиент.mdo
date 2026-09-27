@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="7b8dbdf8-01f5-4a47-a250-1b4dd53b7d85">
+  <name>СП_СпайкКаналБКлиент</name>
+  <synonym>
+    <key>ru</key>
+    <value>СП: Спайк канала B (КлиентТестирования) ADR-009</value>
+  </synonym>
+  <comment>Спайк S1-S5: ТестируемоеПриложение из сеанса моста. Времянка для приемки ADR-009, удаляется после спайка.</comment>
+  <clientManagedApplication>true</clientManagedApplication>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+</mdclass:CommonModule>
