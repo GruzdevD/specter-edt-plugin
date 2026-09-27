@@ -13,6 +13,7 @@ import org.eclipse.swt.widgets.Display;
 import ru.ozon.uitp.e2e.Activator;
 import ru.ozon.uitp.e2e.launcher.BridgeLaunchHelper;
 import ru.ozon.uitp.e2e.launcher.LaunchMonitor;
+import ru.ozon.uitp.e2e.launcher.SpecterLaunchSupport;
 
 /**
  * Исправленный оркестратор запуска живого моста в фоновом Eclipse Job.
@@ -61,8 +62,10 @@ public final class BridgeRunner {
 						return Status.CANCEL_STATUS;
 					}
 
-					// Запуск клиента через хелпер
-					ILaunch launch = BridgeLaunchHelper.launchClient("run", monitor);
+					// Запуск клиента: предпочтителен launch-контур Specter
+					// (конфигурация типа «Specter UI-тесты», по образцу YAxUnit);
+					// при её отсутствии — legacy-путь с -D-свойствами.
+					ILaunch launch = SpecterLaunchSupport.launchOrLegacy("run", monitor);
 					if (launch == null) {
 						return reportError(runId, onError, "Клиент передан на запуск, но ILaunch не найден "
 								+ "(запуск мог не стартовать)");

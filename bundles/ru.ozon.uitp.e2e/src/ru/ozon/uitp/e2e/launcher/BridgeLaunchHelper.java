@@ -35,6 +35,9 @@ public final class BridgeLaunchHelper {
 
 	private static final String PREFIX = "UITP - ";
 
+	/** Порт TestClient/TESTMANAGER по умолчанию (канал B, ADR-009). */
+	public static final int DEFAULT_TESTING_PORT = 4811;
+
 	private BridgeLaunchHelper() {
 	}
 

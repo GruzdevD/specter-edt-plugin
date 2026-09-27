@@ -41,6 +41,34 @@
       </view>
    </extension>
 
+   <!-- Launch-конфигурация Specter (по образцу YAxUnit): ссылается на базовую
+        конфигурацию запуска EDT, delegate готовит клон с параметрами моста. -->
+   <extension
+         point="org.eclipse.debug.core.launchConfigurationTypes">
+      <launchConfigurationType
+            delegate="ru.ozon.uitp.e2e.launcher.SpecterLaunchDelegate"
+            id="ru.ozon.uitp.e2e.launcher.specter"
+            modes="run, debug"
+            name="Specter UI-тесты">
+      </launchConfigurationType>
+   </extension>
+   <extension
+         point="org.eclipse.debug.ui.launchConfigurationTypeImages">
+      <launchConfigurationTypeImage
+            configTypeID="ru.ozon.uitp.e2e.launcher.specter"
+            icon="icons/specter-emblem.png"
+            id="ru.ozon.uitp.e2e.launcher.specter.image">
+      </launchConfigurationTypeImage>
+   </extension>
+   <extension
+         point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+      <launchConfigurationTabGroup
+            class="ru.ozon.uitp.e2e.launcher.SpecterLaunchTabGroup"
+            id="ru.ozon.uitp.e2e.launcher.specter.tabGroup"
+            type="ru.ozon.uitp.e2e.launcher.specter">
+      </launchConfigurationTabGroup>
+   </extension>
+
    <!-- Маркер обнаружения теста в редакторе кода BSL (Gutter / YAxUnit / Specter) -->
    <extension
          id="ru.ozon.uitp.e2e.testMarker"
